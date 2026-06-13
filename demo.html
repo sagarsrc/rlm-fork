@@ -14,46 +14,49 @@
     <a href="https://arxiv.org/abs/2512.24601">Paper</a>
   </nav>
 
-  <div class="status" id="status">Ready. Load a dataset, then click Run Algorithm 2 or Run RLM. Use “Mini OOLONG” for a ~1 minute run.</div>
+  <div class="status" id="status">Ready. Load data, then run Simple LLM and RLM side-by-side.</div>
 
   <div class="controls">
-    <button id="btnOolong">Load OOLONG benchmark</button>
-    <button id="btnMini" class="secondary">Mini OOLONG (20 questions)</button>
+    <button id="btnMini">Mini OOLONG (20 questions)</button>
     <button id="btnTiny" class="secondary">Tiny example</button>
-  </div>
-
-  <div class="controls">
-    <button id="btnRLM">Run RLM</button>
-    <button id="btnAlg2" class="secondary">Run Algorithm 2</button>
+    <label class="file-label">
+      <input type="file" id="fileInput" accept=".txt,.md">
+      <span>Upload file</span>
+    </label>
   </div>
 
   <div class="data-info" id="dataInfo"></div>
 
   <div class="fields">
     <label for="context">Context</label>
-    <textarea id="context" placeholder="Paste text, or load an example above..."></textarea>
+    <textarea id="context" placeholder="Paste text, load Mini OOLONG, or upload a file..."></textarea>
   </div>
 
   <div class="fields" style="margin-top:16px">
-    <label for="query">Question</label>
+    <label for="query">Prompt / question</label>
     <input type="text" id="query" placeholder="e.g. Which label is most common?">
+  </div>
+
+  <div class="controls">
+    <button id="btnAlg2" class="secondary">1. Run Simple LLM</button>
+    <button id="btnRLM">2. Run RLM</button>
   </div>
 
   <div class="results">
     <div class="card empty" id="alg2Card">
-      <div class="title">Algorithm 2 — Direct LLM</div>
+      <div class="title">Simple LLM</div>
       <div class="answer">Not run yet</div>
       <div class="meta">—</div>
     </div>
     <div class="card empty" id="rlmCard">
-      <div class="title">RLM — Recursive</div>
+      <div class="title">RLM</div>
       <div class="answer">Not run yet</div>
       <div class="meta">—</div>
     </div>
   </div>
 
   <div class="steps-wrap" id="stepsWrap" style="display:none">
-    <div class="steps-header">Live trace</div>
+    <div class="steps-header">Trajectory</div>
     <div id="steps"></div>
   </div>
 

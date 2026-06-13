@@ -206,8 +206,10 @@ async function pollJob(jobId, logFile) {
     return;
   }
 
-  const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') + 'done';
-  setCard('rlmCard', 'ok', 'RLM — Recursive', job.response, meta);
+  const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') +
+               'Finish: ' + (job.finish_reason || 'stop') + ' · ' +
+               (job.usage ? job.usage.prompt_tokens + ' + ' + job.usage.completion_tokens + ' tokens' : '');
+  setCard('rlmCard', 'ok', 'RLM', job.response, meta);
   setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
 }
 
@@ -256,13 +258,14 @@ async function runBaseline() {
   try {
     const data = await post('/api/baseline', { context, query: $('query').value.trim() });
     const answer = data.response || '';
-    const meta = 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
+    const elapsed = '';  // Simple LLM backend does not return execution_time currently
+    const meta = elapsed + 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Algorithm 2 — Direct LLM', '(empty — consumed all ' + (data.usage?.completion_tokens || 500) + ' tokens without useful output)', meta);
-      setIdle('Algorithm 2 failed: context too long for a single forward pass.');
+      setCard('alg2Card', 'fail', 'Simple LLM', '(empty — consumed all ' + (data.usage?.completion_tokens || 500) + ' output tokens)', meta);
+      setIdle('Simple LLM failed: ran out of output tokens on one pass.');
     } else {
-      setCard('alg2Card', 'ok', 'Algorithm 2 — Direct LLM', answer, meta);
-      setIdle('Algorithm 2 returned an answer.');
+      setCard('alg2Card', 'ok', 'Simple LLM', answer, meta);
+      setIdle('Simple LLM returned an answer.');
     }
   } catch (e) {
     setError(e.message);
@@ -275,9 +278,21 @@ $('btnTiny').addEventListener('click', () => {
   $('context').value = 'What is 2+2? Answer in one word.';
   $('query').value = '';
   dataInfo.textContent = 'Tiny example: 1 short question.';
-  setIdle('Tiny example loaded. Run Algorithm 2 or RLM.');
+  setIdle('Tiny example loaded. Run Simple LLM or RLM.');
 });
-$('btnOolong').addEventListener('click', () => loadOOLONG(null));
 $('btnMini').addEventListener('click', () => loadOOLONG(20));
 $('btnAlg2').addEventListener('click', runBaseline);
 $('btnRLM').addEventListener('click', runRLM);
+
+const fileInput = $('fileInput');
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    $('context').value = e.target.result;
+    dataInfo.textContent = 'Uploaded: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+    setIdle('File uploaded. Add a prompt and run Simple LLM or RLM.');
+  };
+  reader.readAsText(file);
+});

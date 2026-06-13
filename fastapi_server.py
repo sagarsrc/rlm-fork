@@ -166,10 +166,63 @@ async def demo_page() -> FileResponse:
 # ── Background RLM jobs ──────────────────────────────────────────────────────
 
 
+def _aggregate_tokens(log_path: Path) -> dict:
+    """Sum prompt/completion tokens across root and all sub-LLM calls in the log."""
+    import json
+
+    prompt_tokens = 0
+    completion_tokens = 0
+    if not log_path.is_file():
+        return {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
+    def _add_usage(usage: dict | None) -> None:
+        nonlocal prompt_tokens, completion_tokens
+        if not usage:
+            return
+        if "total_input_tokens" in usage:
+            prompt_tokens += usage.get("total_input_tokens", 0)
+            completion_tokens += usage.get("total_output_tokens", 0)
+        elif "prompt_tokens" in usage:
+            prompt_tokens += usage.get("prompt_tokens", 0)
+            completion_tokens += usage.get("completion_tokens", 0)
+
+    with open(log_path) as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            # Root metadata usage.
+            if entry.get("type") == "metadata":
+                for model_usage in entry.get("usage_summary", {}).get("model_usage_summaries", {}).values():
+                    _add_usage(model_usage)
+            # Iteration-level sub-LLM calls.
+            if entry.get("type") == "iteration":
+                for block in entry.get("code_blocks", []):
+                    for call in block.get("result", {}).get("rlm_calls", []):
+                        _add_usage(call.get("usage_summary"))
+                        # Nested metadata from recursive sub-calls.
+                        for nested in call.get("metadata", {}).get("iterations", []):
+                            for nested_call in _iter_calls(nested):
+                                _add_usage(nested_call.get("usage_summary"))
+
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+
+
+def _iter_calls(entry: dict):
+    """Yield every RLMChatCompletion nested inside a trajectory entry."""
+    for block in entry.get("code_blocks", []):
+        for call in block.get("result", {}).get("rlm_calls", []):
+            yield call
+
+
 def _run_rlm_job(job_id: str, prompt: str, max_iters: int, log_file: str) -> None:
     """Run RLM synchronously and update the in-memory job store."""
     import io
-    import os
     import sys
 
     from dotenv import load_dotenv
@@ -201,11 +254,15 @@ def _run_rlm_job(job_id: str, prompt: str, max_iters: int, log_file: str) -> Non
             verbose=True,
         )
         result = rlm.completion(prompt)
+        log_path = Path(logger.log_file_path) if logger.log_file_path else LOGS_DIR / log_file
+        usage = _aggregate_tokens(log_path)
         _jobs[job_id].update(
             {
                 "status": "done",
                 "response": result.response,
                 "execution_time": result.execution_time,
+                "finish_reason": "stop",
+                "usage": usage,
                 "verbose_output": captured.getvalue(),
                 "error": None,
             }
@@ -216,6 +273,8 @@ def _run_rlm_job(job_id: str, prompt: str, max_iters: int, log_file: str) -> Non
                 "status": "error",
                 "response": f"ERROR: {e}",
                 "execution_time": 0,
+                "finish_reason": "error",
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
                 "verbose_output": captured.getvalue(),
                 "error": str(e),
             }

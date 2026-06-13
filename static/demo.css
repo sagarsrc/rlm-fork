@@ -42,8 +42,8 @@ h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.2px; }
 }
 @keyframes pulse { 50% { opacity: 0.3; } }
 
-.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-button {
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center; }
+button, .file-label {
   padding: 10px 18px;
   border: 1px solid var(--ink);
   border-radius: 8px;
@@ -53,11 +53,18 @@ button {
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
+  font-family: Inter, system-ui, sans-serif;
 }
-button:hover:not(:disabled) { opacity: 0.85; }
+button:hover:not(:disabled), .file-label:hover { opacity: 0.85; }
 button:disabled { opacity: 0.3; cursor: not-allowed; }
-button.secondary { background: var(--paper); color: var(--ink); border-color: var(--pencil); }
-button.secondary:hover:not(:disabled) { border-color: var(--ink); }
+button.secondary, .file-label {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--pencil);
+}
+button.secondary:hover:not(:disabled), .file-label:hover { border-color: var(--ink); }
+.file-label input { display: none; }
+.file-label span { pointer-events: none; }
 
 .data-info { margin-top: 16px; font-size: 13px; color: var(--smoke); }
 
