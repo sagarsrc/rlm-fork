@@ -215,20 +215,18 @@ async function pollJob(jobId, logFile) {
 
 async function loadOOLONG(limit) {
   setRunning('Loading OOLONG benchmark...');
-  $('btnOolong').disabled = true;
   $('btnMini').disabled = true;
   try {
-    const url = limit ? '/api/oolong-data?limit=' + limit : '/api/oolong-data';
+    const url = '/api/oolong-data?limit=' + (limit || 20);
     const res = await fetch(url);
     const data = await res.json();
     $('context').value = data.context;
     $('query').value = data.question;
     dataInfo.textContent = 'OOLONG TREC-coarse: ' + data.num_questions + ' questions, ' + (data.context.length / 1000).toFixed(1) + 'K chars. Ground truth: ' + JSON.stringify(data.answer) + '.';
-    setIdle(data.num_questions + ' questions loaded. Run Algorithm 2 or RLM.');
+    setIdle(data.num_questions + ' questions loaded. Run Simple LLM or RLM.');
   } catch (e) {
     setError(e.message);
   } finally {
-    $('btnOolong').disabled = false;
     $('btnMini').disabled = false;
   }
 }
