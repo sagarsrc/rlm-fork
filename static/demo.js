@@ -173,7 +173,7 @@ async function appendLogSteps(logFile) {
         });
 
         const plan = (entry.response || '').trim();
-        const planPreview = plan ? plan.replace(/\s+/g, ' ').slice(0, 220) + (plan.length > 220 ? '…' : '') : '';
+        const planPreview = plan ? plan.replace(/\s+/g, ' ').slice(0, 360) + (plan.length > 360 ? '…' : '') : '';
         const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
         let subtitleParts = [];
         if (planPreview) subtitleParts.push(planPreview);
@@ -187,7 +187,7 @@ async function appendLogSteps(logFile) {
         }
 
         let body = pre('Root LLM prompt (this turn)', formatPrompt(entry.prompt));
-        body += pre('Plan / response', plan);
+        body += '<div class="section-label">Root LLM thinking / plan</div><div class="pre plan">' + escapeHtml(plan) + '</div>';
         if (codeBodies.length) body += pre('Code executed', codeBodies.join('\n\n---\n\n'));
         if (outputs.length) body += pre('Code output', outputs.join('\n\n---\n\n'));
         if (subs.length) {
