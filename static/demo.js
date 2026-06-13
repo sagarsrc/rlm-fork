@@ -3,10 +3,20 @@ const status = $('status');
 const dataInfo = $('dataInfo');
 const stepsEl = $('steps');
 const stepsWrap = $('stepsWrap');
+const stepsCount = $('stepsCount');
 const perspective = $('perspective');
+const tokenBars = $('tokenBars');
+const barSimple = $('barSimple');
+const barRLM = $('barRLM');
+const barSimpleValue = $('barSimpleValue');
+const barRLMValue = $('barRLMValue');
+const queryEcho = $('queryEcho');
+const queryEchoText = $('queryEchoText');
+
 let activeJob = null;
 let pollTimer = null;
 let seenSteps = new Set();
+let lastUsage = { base: null, rlm: null };
 
 function setStatus(cls, html) {
   status.className = 'status' + (cls ? ' ' + cls : '');
@@ -41,6 +51,7 @@ function clearSteps() {
   stepsEl.innerHTML = '';
   seenSteps.clear();
   stepsWrap.style.display = 'none';
+  stepsCount.textContent = '';
 }
 
 function escapeHtml(s) {
@@ -61,7 +72,7 @@ function formatPrompt(prompt) {
   return JSON.stringify(prompt, null, 2);
 }
 
-function addStep(number, title, subtitle, bodyHtml, cls) {
+function addStep(number, title, subtitle, bodyHtml, cls, badge) {
   const key = number + ':' + title;
   if (seenSteps.has(key)) return;
   seenSteps.add(key);
@@ -71,13 +82,14 @@ function addStep(number, title, subtitle, bodyHtml, cls) {
     '<summary>' +
       '<span class="num">' + number + '</span>' +
       '<span class="title-wrap">' +
-        '<div class="title">' + escapeHtml(title) + '</div>' +
+        '<div class="title">' + escapeHtml(title) + (badge ? '<span class="badge">' + escapeHtml(badge) + '</span>' : '') + '</div>' +
         (subtitle ? '<div class="subtitle">' + escapeHtml(subtitle) + '</div>' : '') +
       '</span>' +
     '</summary>' +
     '<div class="step-body">' + bodyHtml + '</div>';
   stepsEl.appendChild(details);
   stepsWrap.style.display = 'block';
+  stepsCount.textContent = seenSteps.size + ' steps';
   stepsWrap.scrollTop = stepsWrap.scrollHeight;
 }
 
@@ -114,8 +126,9 @@ async function appendLogSteps(logFile) {
     if (!text.trim()) return;
     const lines = text.trim().split('\n');
     let iterCount = 0;
+    const openLatest = seenSteps.size === 0;
 
-    lines.forEach(line => {
+    lines.forEach((line, idx) => {
       try {
         const entry = JSON.parse(line);
         if (entry.type === 'metadata') {
@@ -149,7 +162,7 @@ async function appendLogSteps(logFile) {
               if (b.result.stdout) out.push('STDOUT:\n' + b.result.stdout);
               if (b.result.stderr) out.push('STDERR:\n' + b.result.stderr);
             }
-            if (out.length) outputs.push(out.join('\n'));
+            if (out.length) outputs.push(out.join('\n\n---\n\n'));
           }
           const flatCode = code.replace(/\s+/g, ' ');
           if (flatCode.includes('llm_query_batched')) {
@@ -182,7 +195,8 @@ async function appendLogSteps(logFile) {
           body += subs.map((sub, i) => subCallHtml(sub, i)).join('');
         }
 
-        addStep(iterCount, 'Iteration ' + iterCount, subtitleParts.join(' · '), body, entry.final_answer ? 'final' : '');
+        const badge = subs.length ? subs.length + ' sub-call' + (subs.length > 1 ? 's' : '') : (batched ? batched + ' batched' : '');
+        addStep(iterCount, 'Iteration ' + iterCount, subtitleParts.join(' · '), body, entry.final_answer ? 'final' : '', badge);
 
         subs.forEach((sub, i) => {
           const letter = String.fromCharCode(97 + i);
@@ -197,9 +211,70 @@ async function appendLogSteps(logFile) {
         }
       } catch (e) { /* skip malformed */ }
     });
+
+    // Auto-expand latest iteration while running.
+    const details = stepsEl.querySelectorAll('details');
+    if (details.length && openLatest) {
+      details[details.length - 1].open = true;
+    }
   } catch (e) {
     console.error('log poll failed', e);
   }
+}
+
+function updateTokenBars() {
+  const base = lastUsage.base;
+  const rlm = lastUsage.rlm;
+  if (!base && !rlm) {
+    tokenBars.style.display = 'none';
+    return;
+  }
+  tokenBars.style.display = 'block';
+  const max = Math.max((base?.completion_tokens || 0), (rlm?.completion_tokens || 0), 1);
+  if (base) {
+    barSimple.style.width = (base.completion_tokens / max * 100) + '%';
+    barSimpleValue.textContent = base.completion_tokens.toLocaleString() + ' output';
+  } else {
+    barSimple.style.width = '0%';
+    barSimpleValue.textContent = '—';
+  }
+  if (rlm) {
+    barRLM.style.width = (rlm.completion_tokens / max * 100) + '%';
+    barRLMValue.textContent = rlm.completion_tokens.toLocaleString() + ' output';
+  } else {
+    barRLM.style.width = '0%';
+    barRLMValue.textContent = '—';
+  }
+}
+
+function updatePerspective() {
+  const base = lastUsage.base;
+  const rlm = lastUsage.rlm;
+  const baseOut = base?.completion_tokens || 0;
+  const rlmOut = rlm?.completion_tokens || 0;
+  const rlmIn = rlm?.prompt_tokens || 0;
+  const rlmTime = rlm?.execution_time || 0;
+
+  if (!baseOut && !rlmOut) {
+    perspective.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  if (baseOut && !rlmOut) {
+    html = '<strong>Simple LLM perspective:</strong> API consumed <span class="metric">' + baseOut.toLocaleString() + '</span> output tokens but returned empty content.';
+  } else if (!baseOut && rlmOut) {
+    html = '<strong>RLM perspective:</strong> used <span class="metric">' + rlmOut.toLocaleString() + '</span> output tokens across all turns to produce the answer in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
+  } else if (baseOut && rlmOut) {
+    const ratio = rlmOut / baseOut;
+    const correct = rlm?.response && !rlm.response.startsWith('ERROR') && !rlm.response.startsWith('TIMEOUT');
+    html = '<strong>Comparison:</strong> Simple LLM consumed <span class="metric">' + baseOut.toLocaleString() + '</span> output tokens and returned nothing. ' +
+           'RLM used <span class="metric">' + rlmOut.toLocaleString() + '</span> output tokens (+' + ratio.toFixed(1) + '×) plus <span class="metric">' + rlmIn.toLocaleString() + '</span> prompt tokens, ' +
+           'and ' + (correct ? 'returned a correct answer' : 'returned an answer') + ' in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
+  }
+  perspective.innerHTML = html;
+  perspective.style.display = 'block';
+  updateTokenBars();
 }
 
 async function pollJob(jobId, logFile) {
@@ -220,45 +295,20 @@ async function pollJob(jobId, logFile) {
   await appendLogSteps(logFile);
 
   if (job.status === 'error') {
-    setCard('rlmCard', 'fail', 'RLM — Recursive', job.response, '');
+    setCard('rlmCard', 'fail', 'RLM', job.response, '');
     setError(job.response);
+    lastUsage.rlm = { ...job.usage, response: job.response, execution_time: job.execution_time };
+    updatePerspective();
     return;
   }
 
   const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') +
                'Finish: ' + (job.finish_reason || 'stop') + ' · ' +
-               (job.usage ? job.usage.prompt_tokens + ' prompt + ' + job.usage.completion_tokens + ' output tokens' : '');
+               (job.usage ? job.usage.prompt_tokens.toLocaleString() + ' prompt + ' + job.usage.completion_tokens.toLocaleString() + ' output tokens' : '');
   setCard('rlmCard', 'ok', 'RLM', job.response, meta);
   setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
-  updatePerspective(null, job);
-}
-
-function updatePerspective(baselineUsage, rlmJob) {
-  const base = baselineUsage || {};
-  const rlm = rlmJob?.usage || {};
-  const baseOut = base.completion_tokens || 0;
-  const rlmOut = rlm.completion_tokens || 0;
-  const rlmIn = rlm.prompt_tokens || 0;
-  const rlmTime = rlmJob?.execution_time || 0;
-
-  if (!baseOut && !rlmOut) {
-    perspective.style.display = 'none';
-    return;
-  }
-
-  let html = '';
-  if (baseOut && !rlmOut) {
-    html = '<strong>Simple LLM perspective:</strong> API consumed <span class="metric">' + baseOut + '</span> output tokens but returned empty content.';
-  } else if (!baseOut && rlmOut) {
-    html = '<strong>RLM perspective:</strong> used <span class="metric">' + rlmOut + '</span> output tokens across all turns to produce the answer in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
-  } else if (baseOut && rlmOut) {
-    const ratio = rlmOut / baseOut;
-    html = '<strong>Comparison:</strong> Simple LLM burned <span class="metric">' + baseOut + '</span> output tokens with nothing to show. ' +
-           'RLM used <span class="metric">' + rlmOut + '</span> output tokens (+' + ratio.toFixed(1) + '×) plus <span class="metric">' + rlmIn + '</span> prompt tokens, ' +
-           'but decomposed the task and returned a correct answer in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
-  }
-  perspective.innerHTML = html;
-  perspective.style.display = 'block';
+  lastUsage.rlm = { ...job.usage, response: job.response, execution_time: job.execution_time };
+  updatePerspective();
 }
 
 async function loadOOLONG(limit) {
@@ -281,10 +331,22 @@ async function loadOOLONG(limit) {
   }
 }
 
+function echoQuery() {
+  const ctx = $('context').value.trim();
+  const q = $('query').value.trim();
+  if (!ctx && !q) {
+    queryEcho.style.display = 'none';
+    return;
+  }
+  queryEchoText.textContent = (q ? q + '\n\n' : '') + ctx;
+  queryEcho.style.display = 'block';
+}
+
 async function runRLM() {
   const context = $('context').value.trim();
   if (!context) { setError('Load a dataset first.'); return; }
   clearSteps();
+  echoQuery();
   setRunning('Starting RLM job...');
   $('btnRLM').disabled = true;
   try {
@@ -301,23 +363,24 @@ async function runRLM() {
 async function runBaseline() {
   const context = $('context').value.trim();
   if (!context) { setError('Load a dataset first.'); return; }
+  echoQuery();
   setRunning('Simple LLM running direct call...');
   $('btnAlg2').disabled = true;
   try {
     const data = await post('/api/baseline', { context, query: $('query').value.trim() });
     const answer = data.response || '';
-    const elapsed = '';  // Simple LLM backend does not return execution_time currently
     const meta = (data.execution_time ? data.execution_time.toFixed(1) + 's · ' : '') +
                  'Finish: ' + (data.finish_reason || '?') + ' · ' +
-                 (data.usage ? data.usage.prompt_tokens + ' prompt + ' + data.usage.completion_tokens + ' output tokens' : '');
+                 (data.usage ? data.usage.prompt_tokens.toLocaleString() + ' prompt + ' + data.usage.completion_tokens.toLocaleString() + ' output tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Simple LLM', '(API returned empty content after generating ' + (data.usage?.completion_tokens || 0) + ' output tokens)', meta);
+      setCard('alg2Card', 'fail', 'Simple LLM', '(API returned empty content after generating ' + (data.usage?.completion_tokens || 0).toLocaleString() + ' output tokens)', meta);
       setIdle('Simple LLM failed: API returned empty content even though output tokens were consumed.');
     } else {
       setCard('alg2Card', 'ok', 'Simple LLM', answer, meta);
       setIdle('Simple LLM returned an answer.');
     }
-    updatePerspective(data.usage, null);
+    lastUsage.base = data.usage;
+    updatePerspective();
   } catch (e) {
     setError(e.message);
   } finally {

@@ -55,6 +55,11 @@
 
     <!-- Right: outputs -->
     <div class="panel-right">
+      <div class="query-echo" id="queryEcho" style="display:none">
+        <div class="section-label">Query sent</div>
+        <div class="pre" id="queryEchoText"></div>
+      </div>
+
       <div class="results">
         <div class="card empty" id="alg2Card">
           <div class="title">Simple LLM</div>
@@ -70,8 +75,25 @@
 
       <div class="perspective" id="perspective" style="display:none"></div>
 
+      <div class="token-bars" id="tokenBars" style="display:none">
+        <div class="section-label">Token comparison</div>
+        <div class="bar-row">
+          <span class="bar-label">Simple LLM</span>
+          <div class="bar-track"><div class="bar simple" id="barSimple"></div></div>
+          <span class="bar-value" id="barSimpleValue">0</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">RLM</span>
+          <div class="bar-track"><div class="bar rlm" id="barRLM"></div></div>
+          <span class="bar-value" id="barRLMValue">0</span>
+        </div>
+      </div>
+
       <div class="steps-wrap" id="stepsWrap" style="display:none">
-        <div class="steps-header">Trajectory</div>
+        <div class="steps-header">
+          <span>Trajectory</span>
+          <span class="steps-count" id="stepsCount"></span>
+        </div>
         <div id="steps"></div>
       </div>
     </div>
