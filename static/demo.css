@@ -99,6 +99,7 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
   background: #fafafa;
   max-height: 520px;
   overflow-y: auto;
+  position: relative;
 }
 .steps-header {
   position: sticky; top: 0;
@@ -107,6 +108,7 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
   border-bottom: 1px solid var(--pencil);
   font-size: 11px; font-weight: 500; color: var(--graphite);
   text-transform: uppercase; letter-spacing: 0.5px;
+  z-index: 1;
 }
 
 .step details {
@@ -168,6 +170,18 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
   background: #fafafa;
 }
 .sub-call + .sub-call { margin-top: 10px; }
+
+.perspective {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--pencil);
+  background: #fafafa;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.perspective strong { font-weight: 500; }
+.perspective .metric { font-family: 'SF Mono', 'Fira Code', Menlo, monospace; color: var(--smoke); }
 
 .footer { margin-top: 48px; font-size: 12px; color: var(--graphite); }
 .footer a { color: var(--ink); text-decoration: none; }

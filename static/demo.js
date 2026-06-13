@@ -3,6 +3,7 @@ const status = $('status');
 const dataInfo = $('dataInfo');
 const stepsEl = $('steps');
 const stepsWrap = $('stepsWrap');
+const perspective = $('perspective');
 let activeJob = null;
 let pollTimer = null;
 let seenSteps = new Set();
@@ -229,6 +230,35 @@ async function pollJob(jobId, logFile) {
                (job.usage ? job.usage.prompt_tokens + ' prompt + ' + job.usage.completion_tokens + ' output tokens' : '');
   setCard('rlmCard', 'ok', 'RLM', job.response, meta);
   setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
+  updatePerspective(null, job);
+}
+
+function updatePerspective(baselineUsage, rlmJob) {
+  const base = baselineUsage || {};
+  const rlm = rlmJob?.usage || {};
+  const baseOut = base.completion_tokens || 0;
+  const rlmOut = rlm.completion_tokens || 0;
+  const rlmIn = rlm.prompt_tokens || 0;
+  const rlmTime = rlmJob?.execution_time || 0;
+
+  if (!baseOut && !rlmOut) {
+    perspective.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  if (baseOut && !rlmOut) {
+    html = '<strong>Simple LLM perspective:</strong> generated <span class="metric">' + baseOut + '</span> output tokens and produced no answer.';
+  } else if (!baseOut && rlmOut) {
+    html = '<strong>RLM perspective:</strong> used <span class="metric">' + rlmOut + '</span> output tokens across all turns to produce the answer in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
+  } else if (baseOut && rlmOut) {
+    const ratio = rlmOut / baseOut;
+    html = '<strong>Comparison:</strong> Simple LLM burned <span class="metric">' + baseOut + '</span> output tokens with nothing to show. ' +
+           'RLM used <span class="metric">' + rlmOut + '</span> output tokens (+' + ratio.toFixed(1) + '×) plus <span class="metric">' + rlmIn + '</span> prompt tokens, ' +
+           'but decomposed the task and returned a correct answer in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
+  }
+  perspective.innerHTML = html;
+  perspective.style.display = 'block';
 }
 
 async function loadOOLONG(limit) {
@@ -281,12 +311,13 @@ async function runBaseline() {
                  'Finish: ' + (data.finish_reason || '?') + ' · ' +
                  (data.usage ? data.usage.prompt_tokens + ' prompt + ' + data.usage.completion_tokens + ' output tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Simple LLM', '(empty — consumed all ' + (data.usage?.completion_tokens || 500) + ' output tokens)', meta);
-      setIdle('Simple LLM failed: ran out of output tokens on one pass.');
+      setCard('alg2Card', 'fail', 'Simple LLM', '(generated ' + (data.usage?.completion_tokens || 0) + ' output tokens but no usable answer)', meta);
+      setIdle('Simple LLM failed: burned all output tokens without producing a final answer.');
     } else {
       setCard('alg2Card', 'ok', 'Simple LLM', answer, meta);
       setIdle('Simple LLM returned an answer.');
     }
+    updatePerspective(data.usage, null);
   } catch (e) {
     setError(e.message);
   } finally {
