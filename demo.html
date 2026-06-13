@@ -4,133 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RLM Demo</title>
-<style>
-  :root {
-    --paper: #ffffff;
-    --pencil: #ebebeb;
-    --graphite: #9a9a9a;
-    --smoke: #6e6e6e;
-    --ink: #252525;
-    --ok: #1a7a1a;
-    --bad: #c02020;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: Inter, system-ui, -apple-system, sans-serif;
-    background: var(--paper);
-    color: var(--ink);
-    font-size: 15px;
-    line-height: 1.45;
-    -webkit-font-smoothing: antialiased;
-    padding: 40px 24px;
-  }
-  .wrap { max-width: 780px; margin: 0 auto; }
-  h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.2px; }
-  .lead { color: var(--smoke); font-size: 14px; margin-top: 6px; }
-  .nav { margin-top: 20px; font-size: 13px; }
-  .nav a { color: var(--graphite); text-decoration: none; margin-right: 20px; }
-  .nav a:hover { color: var(--ink); }
-
-  .status {
-    margin-top: 28px;
-    padding: 14px 16px;
-    border: 1px solid var(--pencil);
-    font-size: 13px;
-    color: var(--smoke);
-    min-height: 48px;
-  }
-  .status strong { color: var(--ink); font-weight: 500; }
-  .status.running { border-color: var(--ink); color: var(--ink); }
-  .status.error { border-color: var(--bad); color: var(--bad); }
-  .status .dot {
-    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--ink); margin-right: 6px; vertical-align: middle;
-    animation: pulse 1s infinite;
-  }
-  @keyframes pulse { 50% { opacity: 0.3; } }
-
-  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-  button {
-    padding: 10px 18px;
-    border: 1px solid var(--ink);
-    border-radius: 8px;
-    background: var(--ink);
-    color: var(--paper);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s;
-  }
-  button:hover:not(:disabled) { opacity: 0.85; }
-  button:disabled { opacity: 0.3; cursor: not-allowed; }
-  button.secondary { background: var(--paper); color: var(--ink); border-color: var(--pencil); }
-  button.secondary:hover:not(:disabled) { border-color: var(--ink); }
-
-  .data-info { margin-top: 16px; font-size: 13px; color: var(--smoke); }
-
-  .fields { margin-top: 28px; }
-  .fields label {
-    display: block;
-    font-size: 11px; font-weight: 500; color: var(--graphite);
-    text-transform: uppercase; letter-spacing: 0.5px;
-    margin-bottom: 6px;
-  }
-  textarea, input[type="text"] {
-    width: 100%; border: 1px solid var(--pencil); padding: 10px 12px;
-    font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 12px;
-    line-height: 1.55; background: var(--paper); color: var(--ink); outline: none;
-  }
-  textarea { min-height: 120px; resize: vertical; }
-  textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
-
-  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
-  .card { border: 1px solid var(--pencil); padding: 14px; }
-  .card .title { font-size: 11px; font-weight: 500; color: var(--graphite); text-transform: uppercase; letter-spacing: 0.5px; }
-  .card .answer { font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 13px; margin-top: 10px; word-break: break-all; }
-  .card .meta { font-size: 11px; color: var(--smoke); margin-top: 10px; }
-  .card.ok .title { color: var(--ok); }
-  .card.fail .title { color: var(--bad); }
-  .card.empty .answer { color: var(--graphite); }
-
-  /* Live steps panel */
-  .steps-wrap {
-    margin-top: 28px;
-    border: 1px solid var(--pencil);
-    background: #fafafa;
-    max-height: 360px;
-    overflow-y: auto;
-  }
-  .steps-header {
-    position: sticky; top: 0;
-    background: #f4f4f4;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--pencil);
-    font-size: 11px; font-weight: 500; color: var(--graphite);
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .step {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--pencil);
-    font-size: 13px;
-  }
-  .step:last-child { border-bottom: none; }
-  .step .num {
-    display: inline-block; width: 22px; height: 22px; line-height: 22px;
-    text-align: center; border-radius: 50%; background: var(--ink); color: var(--paper);
-    font-size: 11px; font-weight: 500; margin-right: 10px;
-  }
-  .step .title { font-weight: 500; color: var(--ink); }
-  .step .detail { color: var(--smoke); font-size: 12px; margin-top: 4px; font-family: 'SF Mono', Menlo, monospace; }
-  .step.final .title { color: var(--ok); }
-  .step.error .title { color: var(--bad); }
-
-  .footer { margin-top: 48px; font-size: 12px; color: var(--graphite); }
-  .footer a { color: var(--ink); text-decoration: none; }
-
-  @media (max-width: 640px) {
-    .results { grid-template-columns: 1fr; }
-  }
-</style>
+<link rel="stylesheet" href="/static/demo.css">
 </head>
 <body>
 <div class="wrap">
@@ -141,11 +15,11 @@
     <a href="https://arxiv.org/abs/2512.24601">Paper</a>
   </nav>
 
-  <div class="status" id="status">Ready. Load a dataset, then click Run Algorithm 2 or Run RLM. Use "Quick OOLONG" for a ~2-3 minute run.</div>
+  <div class="status" id="status">Ready. Load a dataset, then click Run Algorithm 2 or Run RLM. Use “Mini OOLONG” for a ~1 minute run.</div>
 
   <div class="controls">
     <button id="btnOolong">Load OOLONG benchmark</button>
-    <button id="btnQuick" class="secondary">Quick OOLONG (100 questions)</button>
+    <button id="btnMini" class="secondary">Mini OOLONG (20 questions)</button>
     <button id="btnTiny" class="secondary">Tiny example</button>
   </div>
 
@@ -168,14 +42,14 @@
 
   <div class="results">
     <div class="card empty" id="alg2Card">
-      <div class="title">Algorithm 2 - Direct LLM</div>
+      <div class="title">Algorithm 2 — Direct LLM</div>
       <div class="answer">Not run yet</div>
-      <div class="meta">-</div>
+      <div class="meta">—</div>
     </div>
     <div class="card empty" id="rlmCard">
-      <div class="title">RLM - Recursive</div>
+      <div class="title">RLM — Recursive</div>
       <div class="answer">Not run yet</div>
-      <div class="meta">-</div>
+      <div class="meta">—</div>
     </div>
   </div>
 
@@ -189,224 +63,6 @@
   </div>
 </div>
 
-<script>
-const $ = id => document.getElementById(id);
-const status = $('status');
-const dataInfo = $('dataInfo');
-const stepsEl = $('steps');
-const stepsWrap = $('stepsWrap');
-let activeJob = null;
-let pollTimer = null;
-let seenSteps = new Set();
-
-function setStatus(cls, html) {
-  status.className = 'status' + (cls ? ' ' + cls : '');
-  status.innerHTML = html;
-}
-function setIdle(msg) { setStatus('', msg); }
-function setRunning(msg) { setStatus('running', '<span class="dot"></span><strong>' + msg + '</strong>'); }
-function setError(msg) { setStatus('error', '<strong>Error.</strong> ' + msg); }
-
-function setCard(id, cls, title, answer, meta) {
-  const card = $(id);
-  card.className = 'card ' + cls;
-  card.querySelector('.title').textContent = title;
-  card.querySelector('.answer').textContent = answer || '(empty)';
-  card.querySelector('.meta').textContent = meta;
-}
-
-async function post(path, body) {
-  const res = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error('HTTP ' + res.status + ': ' + txt.slice(0, 120));
-  }
-  return await res.json();
-}
-
-function clearSteps() {
-  stepsEl.innerHTML = '';
-  seenSteps.clear();
-  stepsWrap.style.display = 'none';
-}
-function addStep(number, title, detail, cls) {
-  const key = number + ':' + title;
-  if (seenSteps.has(key)) return;
-  seenSteps.add(key);
-  const div = document.createElement('div');
-  div.className = 'step ' + (cls || '');
-  div.innerHTML = '<span class="num">' + number + '</span><span class="title">' + title + '</span>' +
-                  (detail ? '<div class="detail">' + detail + '</div>' : '');
-  stepsEl.appendChild(div);
-  stepsWrap.style.display = 'block';
-  stepsWrap.scrollTop = stepsWrap.scrollHeight;
-}
-
-async function appendLogSteps(logFile) {
-  if (!logFile) return;
-  try {
-    const res = await fetch('/logs/' + encodeURIComponent(logFile));
-    const text = await res.text();
-    if (!text.trim()) return;
-    const lines = text.trim().split('\n');
-    let iterCount = 0;
-    let subCount = 0;
-    lines.forEach((line) => {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.type === 'iteration') {
-          iterCount = entry.iteration || iterCount + 1;
-          const blocks = entry.code_blocks || [];
-          let subs = [];
-          blocks.forEach(b => { if (b.result && b.result.rlm_calls) subs = subs.concat(b.result.rlm_calls); });
-
-          // Detect chunking / batching in code.
-          let chunks = 0;
-          let batched = 0;
-          blocks.forEach(b => {
-            const code = (b.code || '').replace(/\s+/g, ' ');
-            if (code.includes('llm_query_batched')) {
-              const m = code.match(/llm_query_batched\s*\(\s*\[([^\]]*)\]/);
-              if (m) batched = Math.max(batched, m[1].split(',').filter(x => x.trim()).length);
-            }
-            if (code.includes('context[') || code.includes('context.split')) chunks += 1;
-          });
-
-          const plan = (entry.response || '').trim();
-          const planShort = plan ? plan.slice(0, 220).replace(/\n/g, ' ') + (plan.length > 220 ? '…' : '') : '';
-          const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
-          let detail = [];
-          if (chunks) detail.push('chunked context');
-          if (batched) detail.push(batched + ' batched sub-LLM calls');
-          if (subs.length && !batched) detail.push(subs.length + ' sub-LLM calls');
-          if (batchInfo) detail.push(batchInfo);
-          if (!detail.length) detail.push('planning');
-
-          addStep(iterCount, 'Iteration ' + iterCount, detail.join(' · ') + (planShort ? '\n' + planShort : ''), entry.final_answer ? 'final' : '');
-
-          subs.forEach((sub, i) => {
-            const letter = String.fromCharCode(97 + i);
-            const resp = (sub.response || '').trim();
-            addStep(iterCount + letter, 'Sub-call ' + (i + 1), resp ? resp.slice(0, 80) + (resp.length > 80 ? '…' : '') : 'sub-LLM call');
-          });
-
-          if (entry.final_answer) {
-            addStep('✓', 'FINAL answer emitted', entry.final_answer, 'final');
-          }
-        }
-      } catch (e) { /* skip malformed */ }
-    });
-  } catch (e) {
-    console.error('log poll failed', e);
-  }
-}
-
-async function pollJob(jobId, logFile) {
-  const res = await fetch('/api/job/' + jobId);
-  const job = await res.json();
-  await appendLogSteps(logFile);
-
-  if (job.status === 'running') {
-    const elapsed = Math.floor((Date.now() - activeJob.start) / 1000);
-    setRunning('RLM running - iteration ' + (seenSteps.size) + ' · ' + elapsed + 's');
-    return;
-  }
-
-  clearInterval(pollTimer);
-  pollTimer = null;
-  activeJob = null;
-  $('btnRLM').disabled = false;
-  await appendLogSteps(logFile);
-
-  if (job.status === 'error') {
-    setCard('rlmCard', 'fail', 'RLM - Recursive', job.response, '');
-    setError(job.response);
-    return;
-  }
-
-  const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') + 'done';
-  setCard('rlmCard', 'ok', 'RLM - Recursive', job.response, meta);
-  setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
-}
-
-$('btnTiny').addEventListener('click', () => {
-  $('context').value = 'What is 2+2? Answer in one word.';
-  $('query').value = '';
-  dataInfo.textContent = 'Tiny example: 1 short question.';
-  setIdle('Tiny example loaded. Run Algorithm 2 or RLM.');
-});
-
-async function loadOOLONG(limit) {
-  setRunning('Loading OOLONG benchmark...');
-  $('btnOolong').disabled = true;
-  $('btnQuick').disabled = true;
-  try {
-    const url = limit ? '/api/oolong-data?limit=' + limit : '/api/oolong-data';
-    const res = await fetch(url);
-    const data = await res.json();
-    $('context').value = data.context;
-    $('query').value = data.question;
-    dataInfo.textContent = 'OOLONG TREC-coarse: ' + data.num_questions + ' questions, ' + (data.context.length / 1000).toFixed(1) + 'K chars. Ground truth: ' + JSON.stringify(data.answer) + '.';
-    setIdle(data.num_questions + ' questions loaded. Run Algorithm 2 or RLM.');
-  } catch (e) {
-    setError(e.message);
-  } finally {
-    $('btnOolong').disabled = false;
-    $('btnQuick').disabled = false;
-  }
-}
-
-$('btnOolong').addEventListener('click', () => loadOOLONG(null));
-$('btnQuick').addEventListener('click', () => loadOOLONG(100));
-
-$('btnAlg2').addEventListener('click', async () => {
-  const context = $('context').value.trim();
-  if (!context) { setError('Load a dataset first.'); return; }
-  setRunning('Algorithm 2 running direct LLM call...');
-  $('btnAlg2').disabled = true;
-  try {
-    const data = await post('/api/baseline', { context, query: $('query').value.trim() });
-    const answer = data.response || '';
-    const meta = 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
-    if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Algorithm 2 - Direct LLM', '(empty)', meta);
-      setIdle('Algorithm 2 failed: context consumed all tokens.');
-    } else {
-      setCard('alg2Card', 'ok', 'Algorithm 2 - Direct LLM', answer, meta);
-      setIdle('Algorithm 2 returned an answer.');
-    }
-  } catch (e) {
-    setError(e.message);
-  } finally {
-    $('btnAlg2').disabled = false;
-  }
-});
-
-$('btnRLM').addEventListener('click', async () => {
-  const context = $('context').value.trim();
-  if (!context) { setError('Load a dataset first.'); return; }
-
-  clearSteps();
-  setRunning('Starting RLM job...');
-  $('btnRLM').disabled = true;
-
-  try {
-    const data = await post('/api/run', { context, query: $('query').value.trim(), max_iterations: 8 });
-    activeJob = { id: data.job_id, logFile: data.log_file, start: Date.now() };
-    addStep(0, 'Job started', 'log: ' + data.log_file);
-
-    pollTimer = setInterval(() => {
-      pollJob(data.job_id, data.log_file);
-    }, 2000);
-  } catch (e) {
-    setError(e.message);
-    $('btnRLM').disabled = false;
-  }
-});
-</script>
+<script src="/static/demo.js"></script>
 </body>
 </html>

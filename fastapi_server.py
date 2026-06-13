@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parent
+STATIC_DIR = ROOT / "static"
 VISUALIZER_DIR = ROOT / "rlm" / "visualizer"
 VISUALIZER_OUT = VISUALIZER_DIR / "out"
 LOGS_DIR = ROOT / "logs"
@@ -251,7 +252,10 @@ async def get_job(job_id: str) -> JSONResponse:
     return JSONResponse(job)
 
 
-# ── Static visualizer ────────────────────────────────────────────────────────
+# ── Static assets + visualizer ───────────────────────────────────────────────
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 if VISUALIZER_OUT.exists():
     app.mount("/", StaticFiles(directory=str(VISUALIZER_OUT), html=True), name="visualizer")
