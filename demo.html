@@ -24,14 +24,13 @@
     -webkit-font-smoothing: antialiased;
     padding: 40px 24px;
   }
-  .wrap { max-width: 720px; margin: 0 auto; }
+  .wrap { max-width: 780px; margin: 0 auto; }
   h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.2px; }
   .lead { color: var(--smoke); font-size: 14px; margin-top: 6px; }
   .nav { margin-top: 20px; font-size: 13px; }
   .nav a { color: var(--graphite); text-decoration: none; margin-right: 20px; }
   .nav a:hover { color: var(--ink); }
 
-  /* Status card */
   .status {
     margin-top: 28px;
     padding: 14px 16px;
@@ -50,7 +49,6 @@
   }
   @keyframes pulse { 50% { opacity: 0.3; } }
 
-  /* Controls */
   .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
   button {
     padding: 10px 18px;
@@ -68,40 +66,23 @@
   button.secondary { background: var(--paper); color: var(--ink); border-color: var(--pencil); }
   button.secondary:hover:not(:disabled) { border-color: var(--ink); }
 
-  /* Data info */
-  .data-info {
-    margin-top: 16px;
-    font-size: 13px;
-    color: var(--smoke);
-  }
+  .data-info { margin-top: 16px; font-size: 13px; color: var(--smoke); }
 
-  /* Inputs */
   .fields { margin-top: 28px; }
   .fields label {
     display: block;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--graphite);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 11px; font-weight: 500; color: var(--graphite);
+    text-transform: uppercase; letter-spacing: 0.5px;
     margin-bottom: 6px;
   }
   textarea, input[type="text"] {
-    width: 100%;
-    border: 1px solid var(--pencil);
-    padding: 10px 12px;
-    font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
-    font-size: 12px;
-    line-height: 1.55;
-    background: var(--paper);
-    color: var(--ink);
-    outline: none;
+    width: 100%; border: 1px solid var(--pencil); padding: 10px 12px;
+    font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 12px;
+    line-height: 1.55; background: var(--paper); color: var(--ink); outline: none;
   }
   textarea { min-height: 120px; resize: vertical; }
-  input[type="text"] { margin-top: 0; }
   textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
 
-  /* Results */
   .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
   .card { border: 1px solid var(--pencil); padding: 14px; }
   .card .title { font-size: 11px; font-weight: 500; color: var(--graphite); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -110,6 +91,38 @@
   .card.ok .title { color: var(--ok); }
   .card.fail .title { color: var(--bad); }
   .card.empty .answer { color: var(--graphite); }
+
+  /* Live steps panel */
+  .steps-wrap {
+    margin-top: 28px;
+    border: 1px solid var(--pencil);
+    background: #fafafa;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+  .steps-header {
+    position: sticky; top: 0;
+    background: #f4f4f4;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--pencil);
+    font-size: 11px; font-weight: 500; color: var(--graphite);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .step {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--pencil);
+    font-size: 13px;
+  }
+  .step:last-child { border-bottom: none; }
+  .step .num {
+    display: inline-block; width: 22px; height: 22px; line-height: 22px;
+    text-align: center; border-radius: 50%; background: var(--ink); color: var(--paper);
+    font-size: 11px; font-weight: 500; margin-right: 10px;
+  }
+  .step .title { font-weight: 500; color: var(--ink); }
+  .step .detail { color: var(--smoke); font-size: 12px; margin-top: 4px; font-family: 'SF Mono', Menlo, monospace; }
+  .step.final .title { color: var(--ok); }
+  .step.error .title { color: var(--bad); }
 
   .footer { margin-top: 48px; font-size: 12px; color: var(--graphite); }
   .footer a { color: var(--ink); text-decoration: none; }
@@ -163,6 +176,11 @@
     </div>
   </div>
 
+  <div class="steps-wrap" id="stepsWrap" style="display:none">
+    <div class="steps-header">Live trace</div>
+    <div id="steps"></div>
+  </div>
+
   <div class="footer">
     Zhang, Kraska, Khattab · <a href="https://arxiv.org/abs/2512.24601">arXiv</a>
   </div>
@@ -172,12 +190,16 @@
 const $ = id => document.getElementById(id);
 const status = $('status');
 const dataInfo = $('dataInfo');
+const stepsEl = $('steps');
+const stepsWrap = $('stepsWrap');
+let activeJob = null;
+let pollTimer = null;
+let seenSteps = new Set();
 
 function setStatus(cls, html) {
   status.className = 'status' + (cls ? ' ' + cls : '');
   status.innerHTML = html;
 }
-
 function setIdle(msg) { setStatus('', msg); }
 function setRunning(msg) { setStatus('running', '<span class="dot"></span><strong>' + msg + '</strong>'); }
 function setError(msg) { setStatus('error', '<strong>Error.</strong> ' + msg); }
@@ -201,6 +223,95 @@ async function post(path, body) {
     throw new Error('HTTP ' + res.status + ': ' + txt.slice(0, 120));
   }
   return await res.json();
+}
+
+function clearSteps() {
+  stepsEl.innerHTML = '';
+  seenSteps.clear();
+  stepsWrap.style.display = 'none';
+}
+function addStep(number, title, detail, cls) {
+  const key = number + ':' + title;
+  if (seenSteps.has(key)) return;
+  seenSteps.add(key);
+  const div = document.createElement('div');
+  div.className = 'step ' + (cls || '');
+  div.innerHTML = '<span class="num">' + number + '</span><span class="title">' + title + '</span>' +
+                  (detail ? '<div class="detail">' + detail + '</div>' : '');
+  stepsEl.appendChild(div);
+  stepsWrap.style.display = 'block';
+  stepsWrap.scrollTop = stepsWrap.scrollHeight;
+}
+
+async function appendLogSteps(logFile) {
+  if (!logFile) return;
+  try {
+    const res = await fetch('/logs/' + encodeURIComponent(logFile));
+    const text = await res.text();
+    if (!text.trim()) return;
+    const lines = text.trim().split('\n');
+    let iterCount = 0;
+    let subCount = 0;
+    lines.forEach((line) => {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type === 'iteration') {
+          iterCount = entry.iteration || iterCount + 1;
+          // Sub-LLM calls live inside code_blocks[].result.rlm_calls
+          const blocks = entry.code_blocks || [];
+          let subs = [];
+          blocks.forEach(b => { if (b.result && b.result.rlm_calls) subs = subs.concat(b.result.rlm_calls); });
+          const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
+          const detail = subs.length ? subs.length + ' sub-LLM calls' + (batchInfo ? ' · ' + batchInfo : '') : (batchInfo || 'planning');
+          addStep(iterCount, 'Iteration ' + iterCount, detail, entry.final_answer ? 'final' : '');
+
+          // Show each sub-LLM call as a nested step.
+          subs.forEach((sub, i) => {
+            const meta = sub.metadata || {};
+            const childIters = (meta.iterations || []).length;
+            const subDetail = childIters ? childIters + ' child iterations' : 'sub-call';
+            const letter = String.fromCharCode(97 + i);
+            const resp = (sub.response || '').trim();
+            addStep(iterCount + letter, 'Sub-call ' + (i + 1), (resp ? resp.slice(0, 60) + (resp.length > 60 ? '…' : '') : subDetail));
+          });
+
+          if (entry.final_answer) {
+            addStep('✓', 'FINAL answer emitted', entry.final_answer, 'final');
+          }
+        }
+      } catch (e) { /* skip malformed */ }
+    });
+  } catch (e) {
+    console.error('log poll failed', e);
+  }
+}
+
+async function pollJob(jobId, logFile) {
+  const res = await fetch('/api/job/' + jobId);
+  const job = await res.json();
+  await appendLogSteps(logFile);
+
+  if (job.status === 'running') {
+    const elapsed = Math.floor((Date.now() - activeJob.start) / 1000);
+    setRunning('RLM running — iteration ' + (seenSteps.size) + ' · ' + elapsed + 's');
+    return;
+  }
+
+  clearInterval(pollTimer);
+  pollTimer = null;
+  activeJob = null;
+  $('btnRLM').disabled = false;
+  await appendLogSteps(logFile);
+
+  if (job.status === 'error') {
+    setCard('rlmCard', 'fail', 'RLM — Recursive', job.response, '');
+    setError(job.response);
+    return;
+  }
+
+  const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') + 'done';
+  setCard('rlmCard', 'ok', 'RLM — Recursive', job.response, meta);
+  setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
 }
 
 $('btnTiny').addEventListener('click', () => {
@@ -253,30 +364,21 @@ $('btnAlg2').addEventListener('click', async () => {
 $('btnRLM').addEventListener('click', async () => {
   const context = $('context').value.trim();
   if (!context) { setError('Load a dataset first.'); return; }
-  setRunning('RLM running...');
+
+  clearSteps();
+  setRunning('Starting RLM job...');
   $('btnRLM').disabled = true;
-  const start = Date.now();
-  const timer = setInterval(() => {
-    const s = Math.floor((Date.now() - start) / 1000);
-    setRunning('RLM running... ' + s + 's elapsed');
-  }, 1000);
 
   try {
     const data = await post('/api/run', { context, query: $('query').value.trim(), max_iterations: 6 });
-    clearInterval(timer);
-    const meta = (data.execution_time ? data.execution_time.toFixed(1) + 's · ' : '') + 'see /logs for full trace';
-    if (data.response && !data.response.startsWith('TIMEOUT') && !data.response.startsWith('ERROR')) {
-      setCard('rlmCard', 'ok', 'RLM — Recursive', data.response, meta);
-      setIdle('RLM succeeded in ' + (data.execution_time ? data.execution_time.toFixed(1) : '?') + 's.');
-    } else {
-      setCard('rlmCard', 'fail', 'RLM — Recursive', data.response, meta);
-      setError(data.response);
-    }
+    activeJob = { id: data.job_id, logFile: data.log_file, start: Date.now() };
+    addStep(0, 'Job started', 'log: ' + data.log_file);
+
+    pollTimer = setInterval(() => {
+      pollJob(data.job_id, data.log_file);
+    }, 2000);
   } catch (e) {
-    clearInterval(timer);
-    setCard('rlmCard', 'fail', 'RLM — Recursive', e.message, '');
     setError(e.message);
-  } finally {
     $('btnRLM').disabled = false;
   }
 });
