@@ -1,0 +1,19 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Logs (runtime artifacts)
+logs/*.jsonl
+
+# OS
+.DS_Store
+
+# Visualizer build output
+rlm/visualizer/out/
+rlm/visualizer/.next/
+rlm/visualizer/node_modules/
