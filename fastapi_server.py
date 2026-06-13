@@ -250,7 +250,7 @@ def _run_rlm_job(job_id: str, prompt: str, max_iters: int, log_file: str) -> Non
     try:
         rlm = RLM(
             backend="moonshot",
-            backend_kwargs={"model_name": "kimi-k2.6"},
+            backend_kwargs={"model_name": "kimi-k2.6", "timeout": 600},
             environment="local",
             max_iterations=max_iters,
             logger=logger,
