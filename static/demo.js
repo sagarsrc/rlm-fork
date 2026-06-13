@@ -248,7 +248,7 @@ function updatePerspective(baselineUsage, rlmJob) {
 
   let html = '';
   if (baseOut && !rlmOut) {
-    html = '<strong>Simple LLM perspective:</strong> generated <span class="metric">' + baseOut + '</span> output tokens and produced no answer.';
+    html = '<strong>Simple LLM perspective:</strong> API consumed <span class="metric">' + baseOut + '</span> output tokens but returned empty content.';
   } else if (!baseOut && rlmOut) {
     html = '<strong>RLM perspective:</strong> used <span class="metric">' + rlmOut + '</span> output tokens across all turns to produce the answer in <span class="metric">' + rlmTime.toFixed(1) + 's</span>.';
   } else if (baseOut && rlmOut) {
@@ -311,8 +311,8 @@ async function runBaseline() {
                  'Finish: ' + (data.finish_reason || '?') + ' · ' +
                  (data.usage ? data.usage.prompt_tokens + ' prompt + ' + data.usage.completion_tokens + ' output tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Simple LLM', '(generated ' + (data.usage?.completion_tokens || 0) + ' output tokens but no usable answer)', meta);
-      setIdle('Simple LLM failed: burned all output tokens without producing a final answer.');
+      setCard('alg2Card', 'fail', 'Simple LLM', '(API returned empty content after generating ' + (data.usage?.completion_tokens || 0) + ' output tokens)', meta);
+      setIdle('Simple LLM failed: API returned empty content even though output tokens were consumed.');
     } else {
       setCard('alg2Card', 'ok', 'Simple LLM', answer, meta);
       setIdle('Simple LLM returned an answer.');
