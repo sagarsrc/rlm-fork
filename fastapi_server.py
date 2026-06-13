@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 VISUALIZER_DIR = ROOT / "rlm" / "visualizer"
 VISUALIZER_OUT = VISUALIZER_DIR / "out"
-LOGS_DIR = ROOT / "logs"
-PUBLIC_LOGS = VISUALIZER_DIR / "public" / "logs"
+LOGS_DIR = ROOT / ".logs"
+PUBLIC_LOGS = VISUALIZER_DIR / "public" / "logs" if VISUALIZER_DIR.exists() else ROOT / ".logs_public"
 
 # In-memory job store (single uvicorn worker is fine for demo).
 _jobs: dict[str, dict] = {}

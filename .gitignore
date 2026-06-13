@@ -9,6 +9,8 @@ __pycache__/
 
 # Logs (runtime artifacts)
 logs/*.jsonl
+.logs/
+.logs_public/
 
 # OS
 .DS_Store
