@@ -80,13 +80,28 @@ function addStep(number, title, subtitle, bodyHtml, cls) {
   stepsWrap.scrollTop = stepsWrap.scrollHeight;
 }
 
+function subCallTokens(sub) {
+  const us = sub.usage_summary || {};
+  let prompt = 0, output = 0;
+  if (us.total_input_tokens !== undefined) {
+    prompt = us.total_input_tokens;
+    output = us.total_output_tokens || 0;
+  } else if (us.model_usage_summaries) {
+    for (const m of Object.values(us.model_usage_summaries)) {
+      prompt += m.total_input_tokens || 0;
+      output += m.total_output_tokens || 0;
+    }
+  }
+  return prompt + ' prompt + ' + output + ' output tokens';
+}
+
 function subCallHtml(sub, i) {
   const prompt = typeof sub.prompt === 'object' ? JSON.stringify(sub.prompt, null, 2) : (sub.prompt || '');
   return '<div class="sub-call">' +
     '<div class="section-label">Sub-call ' + (i + 1) + '</div>' +
+    '<div class="subtitle" style="margin-bottom:6px">' + subCallTokens(sub) + ' · ' + (sub.execution_time ? sub.execution_time.toFixed(2) + 's' : '') + '</div>' +
     pre('Prompt', prompt) +
     pre('Response', sub.response) +
-    '<div class="subtitle" style="margin-top:6px">tokens: ' + (sub.usage_summary?.total_input_tokens || '?') + ' in / ' + (sub.usage_summary?.total_output_tokens || '?') + ' out · ' + (sub.execution_time ? sub.execution_time.toFixed(2) + 's' : '') + '</div>' +
   '</div>';
 }
 
@@ -126,7 +141,7 @@ async function appendLogSteps(logFile) {
         blocks.forEach(b => {
           const code = (b.code || '').trim();
           if (code) {
-            if (!codePreview) codePreview = code.replace(/\s+/g, ' ').slice(0, 80) + (code.length > 80 ? '…' : '');
+            if (!codePreview) codePreview = code.replace(/\s+/g, ' ').slice(0, 180) + (code.length > 180 ? '…' : '');
             codeBodies.push(code);
             const out = [];
             if (b.result) {
@@ -169,7 +184,7 @@ async function appendLogSteps(logFile) {
           const resp = (sub.response || '').trim();
           const subBody = pre('Prompt', typeof sub.prompt === 'object' ? JSON.stringify(sub.prompt, null, 2) : (sub.prompt || '')) +
                           pre('Response', sub.response);
-          addStep(iterCount + letter, 'Sub-call ' + (i + 1), resp ? resp.slice(0, 120) + (resp.length > 120 ? '…' : '') : 'sub-LLM call', subBody);
+          addStep(iterCount + letter, 'Sub-call ' + (i + 1), resp ? resp.slice(0, 220) + (resp.length > 220 ? '…' : '') : 'sub-LLM call', subBody);
         });
 
         if (entry.final_answer) {
@@ -280,6 +295,7 @@ $('btnTiny').addEventListener('click', () => {
   setIdle('Tiny example loaded. Run Simple LLM or RLM.');
 });
 $('btnMini').addEventListener('click', () => loadOOLONG(20));
+$('btnMed').addEventListener('click', () => loadOOLONG(100));
 $('btnAlg2').addEventListener('click', runBaseline);
 $('btnRLM').addEventListener('click', runRLM);
 
