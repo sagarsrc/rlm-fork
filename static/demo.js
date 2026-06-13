@@ -42,34 +42,53 @@ function clearSteps() {
   stepsWrap.style.display = 'none';
 }
 
-function addStep(number, title, detail, cls) {
-  const key = number + ':' + title;
-  if (seenSteps.has(key)) return;
-  seenSteps.add(key);
-  const div = document.createElement('div');
-  div.className = 'step ' + (cls || '');
-  div.innerHTML = '<span class="num">' + number + '</span><span class="title">' + title + '</span>' +
-                  (detail ? '<div class="detail">' + escapeHtml(detail) + '</div>' : '');
-  stepsEl.appendChild(div);
-  stepsWrap.style.display = 'block';
-  stepsWrap.scrollTop = stepsWrap.scrollHeight;
-}
-
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function shortPlan(text) {
-  const t = (text || '').trim();
-  if (!t) return '';
-  const oneline = t.replace(/\s+/g, ' ');
-  return oneline.slice(0, 260) + (oneline.length > 260 ? '…' : '');
+function pre(title, text) {
+  if (text === null || text === undefined || text === '') return '';
+  return '<div class="section-label">' + escapeHtml(title) + '</div>' +
+         '<div class="pre">' + escapeHtml(typeof text === 'object' ? JSON.stringify(text, null, 2) : String(text)) + '</div>';
 }
 
-function shortCode(code) {
-  const c = (code || '').trim();
-  if (!c) return '';
-  return c.replace(/\s+/g, ' ').slice(0, 120) + (c.length > 120 ? '…' : '');
+function lastUserPrompt(prompt) {
+  if (typeof prompt === 'string') return prompt;
+  if (Array.isArray(prompt) && prompt.length) {
+    const last = prompt[prompt.length - 1];
+    return last.content || JSON.stringify(last);
+  }
+  return JSON.stringify(prompt);
+}
+
+function addStep(number, title, subtitle, bodyHtml, cls) {
+  const key = number + ':' + title;
+  if (seenSteps.has(key)) return;
+  seenSteps.add(key);
+  const details = document.createElement('details');
+  details.className = 'step ' + (cls || '');
+  details.innerHTML =
+    '<summary>' +
+      '<span class="num">' + number + '</span>' +
+      '<span class="title-wrap">' +
+        '<div class="title">' + escapeHtml(title) + '</div>' +
+        (subtitle ? '<div class="subtitle">' + escapeHtml(subtitle) + '</div>' : '') +
+      '</span>' +
+    '</summary>' +
+    '<div class="step-body">' + bodyHtml + '</div>';
+  stepsEl.appendChild(details);
+  stepsWrap.style.display = 'block';
+  stepsWrap.scrollTop = stepsWrap.scrollHeight;
+}
+
+function subCallHtml(sub, i) {
+  const prompt = typeof sub.prompt === 'object' ? JSON.stringify(sub.prompt, null, 2) : (sub.prompt || '');
+  return '<div class="sub-call">' +
+    '<div class="section-label">Sub-call ' + (i + 1) + '</div>' +
+    pre('Prompt', prompt) +
+    pre('Response', sub.response) +
+    '<div class="subtitle" style="margin-top:6px">tokens: ' + (sub.usage_summary?.total_input_tokens || '?') + ' in / ' + (sub.usage_summary?.total_output_tokens || '?') + ' out · ' + (sub.execution_time ? sub.execution_time.toFixed(2) + 's' : '') + '</div>' +
+  '</div>';
 }
 
 async function appendLogSteps(logFile) {
@@ -80,10 +99,21 @@ async function appendLogSteps(logFile) {
     if (!text.trim()) return;
     const lines = text.trim().split('\n');
     let iterCount = 0;
+
     lines.forEach(line => {
       try {
         const entry = JSON.parse(line);
+        if (entry.type === 'metadata') {
+          const cfg = [
+            'model: ' + entry.root_model,
+            'max iterations: ' + entry.max_iterations,
+            'max depth: ' + entry.max_depth,
+          ].join(' · ');
+          addStep('⚙', 'Configuration', cfg, pre('Run metadata', entry));
+          return;
+        }
         if (entry.type !== 'iteration') return;
+
         iterCount = entry.iteration || iterCount + 1;
         const blocks = entry.code_blocks || [];
         let subs = [];
@@ -92,37 +122,59 @@ async function appendLogSteps(logFile) {
         let chunks = 0;
         let batched = 0;
         let codePreview = '';
+        let codeBodies = [];
+        let outputs = [];
         blocks.forEach(b => {
-          const code = (b.code || '').replace(/\s+/g, ' ');
-          if (!codePreview && code) codePreview = shortCode(b.code);
-          if (code.includes('llm_query_batched')) {
-            const m = code.match(/llm_query_batched\s*\(\s*\[([^\]]*)\]/);
+          const code = (b.code || '').trim();
+          if (code) {
+            if (!codePreview) codePreview = code.replace(/\s+/g, ' ').slice(0, 80) + (code.length > 80 ? '…' : '');
+            codeBodies.push(code);
+            const out = [];
+            if (b.result) {
+              if (b.result.stdout) out.push('STDOUT:\n' + b.result.stdout);
+              if (b.result.stderr) out.push('STDERR:\n' + b.result.stderr);
+            }
+            if (out.length) outputs.push(out.join('\n'));
+          }
+          const flatCode = code.replace(/\s+/g, ' ');
+          if (flatCode.includes('llm_query_batched')) {
+            const m = flatCode.match(/llm_query_batched\s*\(\s*\[([^\]]*)\]/);
             if (m) batched = Math.max(batched, m[1].split(',').filter(x => x.trim()).length);
           }
-          if (code.includes('context[') || code.includes('context.split') || code.includes('strip().split')) chunks += 1;
+          if (flatCode.includes('context[') || flatCode.includes('context.split') || flatCode.includes('strip().split')) chunks += 1;
         });
 
-        const plan = shortPlan(entry.response);
+        const plan = (entry.response || '').trim();
         const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
-        let detail = [];
-        if (chunks) detail.push('chunked context');
-        if (batched) detail.push(batched + ' batched sub-LLM calls');
-        if (subs.length && !batched) detail.push(subs.length + ' sub-LLM calls');
-        if (batchInfo) detail.push(batchInfo);
-        if (!detail.length) detail.push('planning');
-        if (codePreview) detail.push('` ' + codePreview + ' `');
-        if (plan) detail.push(plan);
+        let subtitleParts = [];
+        if (chunks) subtitleParts.push('chunked context');
+        if (batched) subtitleParts.push(batched + ' batched sub-LLM calls');
+        if (subs.length && !batched) subtitleParts.push(subs.length + ' sub-LLM calls');
+        if (batchInfo) subtitleParts.push(batchInfo);
+        if (!subtitleParts.length) subtitleParts.push('planning');
+        if (codePreview) subtitleParts.push('` ' + codePreview + ' `');
 
-        addStep(iterCount, 'Iteration ' + iterCount, detail.join('\n'), entry.final_answer ? 'final' : '');
+        let body = pre('Root LLM prompt (last turn)', lastUserPrompt(entry.prompt));
+        body += pre('Plan / response', plan);
+        if (codeBodies.length) body += pre('Code executed', codeBodies.join('\n\n---\n\n'));
+        if (outputs.length) body += pre('Code output', outputs.join('\n\n---\n\n'));
+        if (subs.length) {
+          body += '<div class="section-label">Sub-LLM calls (' + subs.length + ')</div>';
+          body += subs.map((sub, i) => subCallHtml(sub, i)).join('');
+        }
+
+        addStep(iterCount, 'Iteration ' + iterCount, subtitleParts.join(' · '), body, entry.final_answer ? 'final' : '');
 
         subs.forEach((sub, i) => {
           const letter = String.fromCharCode(97 + i);
           const resp = (sub.response || '').trim();
-          addStep(iterCount + letter, 'Sub-call ' + (i + 1), resp ? resp.slice(0, 120) + (resp.length > 120 ? '…' : '') : 'sub-LLM call');
+          const subBody = pre('Prompt', typeof sub.prompt === 'object' ? JSON.stringify(sub.prompt, null, 2) : (sub.prompt || '')) +
+                          pre('Response', sub.response);
+          addStep(iterCount + letter, 'Sub-call ' + (i + 1), resp ? resp.slice(0, 120) + (resp.length > 120 ? '…' : '') : 'sub-LLM call', subBody);
         });
 
         if (entry.final_answer) {
-          addStep('✓', 'FINAL answer emitted', entry.final_answer, 'final');
+          addStep('✓', 'FINAL answer emitted', entry.final_answer, pre('Final answer', entry.final_answer), 'final');
         }
       } catch (e) { /* skip malformed */ }
     });
@@ -188,7 +240,7 @@ async function runRLM() {
   try {
     const data = await post('/api/run', { context, query: $('query').value.trim(), max_iterations: 8 });
     activeJob = { id: data.job_id, logFile: data.log_file, start: Date.now() };
-    addStep(0, 'Job started', 'log: ' + data.log_file);
+    addStep(0, 'Job started', 'log: ' + data.log_file, '<div class="section-label">Job</div><div class="pre">' + escapeHtml(JSON.stringify(data, null, 2)) + '</div>');
     pollTimer = setInterval(() => pollJob(data.job_id, data.log_file), 2000);
   } catch (e) {
     setError(e.message);
@@ -206,8 +258,8 @@ async function runBaseline() {
     const answer = data.response || '';
     const meta = 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Algorithm 2 — Direct LLM', '(empty)', meta);
-      setIdle('Algorithm 2 failed: context consumed all tokens.');
+      setCard('alg2Card', 'fail', 'Algorithm 2 — Direct LLM', '(empty — consumed all ' + (data.usage?.completion_tokens || 500) + ' tokens without useful output)', meta);
+      setIdle('Algorithm 2 failed: context too long for a single forward pass.');
     } else {
       setCard('alg2Card', 'ok', 'Algorithm 2 — Direct LLM', answer, meta);
       setIdle('Algorithm 2 returned an answer.');
