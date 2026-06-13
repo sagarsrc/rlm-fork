@@ -8,59 +8,73 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Recursive Language Models</h1>
-  <p class="lead">LLM + REPL. The model writes code to inspect, split, and recursively call itself instead of reading the whole context at once.</p>
-  <nav class="nav">
-    <a href="https://arxiv.org/abs/2512.24601">Paper</a>
-  </nav>
-
-  <div class="status" id="status">Ready. Load data, then run Simple LLM and RLM side-by-side.</div>
-
-  <div class="controls">
-    <button id="btnMini">Mini OOLONG (20 questions)</button>
-    <button id="btnMed" class="secondary">OOLONG (100 questions)</button>
-    <button id="btnTiny" class="secondary">Tiny example</button>
-    <label class="file-label">
-      <input type="file" id="fileInput" accept=".txt,.md,.json,.jsonl">
-      <span>Upload file</span>
-    </label>
-  </div>
-
-  <div class="data-info" id="dataInfo"></div>
-
-  <div class="fields">
-    <label for="context">Context</label>
-    <textarea id="context" placeholder="Paste text, load Mini OOLONG, or upload a file..."></textarea>
-  </div>
-
-  <div class="fields" style="margin-top:16px">
-    <label for="query">Prompt / question</label>
-    <input type="text" id="query" placeholder="e.g. Which label is most common?">
-  </div>
-
-  <div class="controls">
-    <button id="btnAlg2" class="secondary">1. Run Simple LLM</button>
-    <button id="btnRLM">2. Run RLM</button>
-  </div>
-
-  <div class="results">
-    <div class="card empty" id="alg2Card">
-      <div class="title">Simple LLM</div>
-      <div class="answer">Not run yet</div>
-      <div class="meta">—</div>
+  <header class="topbar">
+    <div>
+      <h1>Recursive Language Models</h1>
+      <p class="lead">LLM + REPL. The model writes code to inspect, split, and recursively call itself instead of reading the whole context at once.</p>
     </div>
-    <div class="card empty" id="rlmCard">
-      <div class="title">RLM</div>
-      <div class="answer">Not run yet</div>
-      <div class="meta">—</div>
+    <nav class="nav">
+      <a href="https://arxiv.org/abs/2512.24601">Paper</a>
+    </nav>
+  </header>
+
+  <div class="split">
+    <!-- Left: config / inputs -->
+    <div class="panel-left">
+      <div class="status" id="status">Ready. Load data, then run Simple LLM and RLM.</div>
+
+      <div class="section-label">Load data</div>
+      <div class="controls vertical">
+        <button id="btnMini">Mini OOLONG (20 questions)</button>
+        <button id="btnMed" class="secondary">OOLONG (100 questions)</button>
+        <button id="btnTiny" class="secondary">Tiny example</button>
+        <label class="file-label">
+          <input type="file" id="fileInput" accept=".txt,.md,.json,.jsonl">
+          <span>Upload file</span>
+        </label>
+      </div>
+
+      <div class="data-info" id="dataInfo"></div>
+
+      <div class="fields">
+        <label for="context">Context</label>
+        <textarea id="context" placeholder="Paste text, load Mini OOLONG, or upload a file..."></textarea>
+      </div>
+
+      <div class="fields" style="margin-top:16px">
+        <label for="query">Prompt / question</label>
+        <input type="text" id="query" placeholder="e.g. Which label is most common?">
+      </div>
+
+      <div class="section-label" style="margin-top:24px">Run</div>
+      <div class="controls vertical">
+        <button id="btnAlg2" class="secondary">1. Run Simple LLM</button>
+        <button id="btnRLM">2. Run RLM</button>
+      </div>
     </div>
-  </div>
 
-  <div class="perspective" id="perspective" style="display:none"></div>
+    <!-- Right: outputs -->
+    <div class="panel-right">
+      <div class="results">
+        <div class="card empty" id="alg2Card">
+          <div class="title">Simple LLM</div>
+          <div class="answer">Not run yet</div>
+          <div class="meta">—</div>
+        </div>
+        <div class="card empty" id="rlmCard">
+          <div class="title">RLM</div>
+          <div class="answer">Not run yet</div>
+          <div class="meta">—</div>
+        </div>
+      </div>
 
-  <div class="steps-wrap" id="stepsWrap" style="display:none">
-    <div class="steps-header">Trajectory</div>
-    <div id="steps"></div>
+      <div class="perspective" id="perspective" style="display:none"></div>
+
+      <div class="steps-wrap" id="stepsWrap" style="display:none">
+        <div class="steps-header">Trajectory</div>
+        <div id="steps"></div>
+      </div>
+    </div>
   </div>
 
   <div class="footer">
