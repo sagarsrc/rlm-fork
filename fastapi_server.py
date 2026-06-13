@@ -144,13 +144,23 @@ async def baseline_llm(request: dict) -> JSONResponse:
         return JSONResponse({"response": f"ERROR: {e}", "finish_reason": "error"})
 
 
-@app.get("/demo")
-async def demo_page() -> FileResponse:
-    """Serve the live demo page."""
+def _demo_file() -> FileResponse:
     demo_html = ROOT / "demo.html"
     if demo_html.exists():
         return FileResponse(demo_html)
     raise HTTPException(status_code=404, detail="Demo page not found")
+
+
+@app.get("/")
+async def root() -> FileResponse:
+    """Root serves the live demo page."""
+    return _demo_file()
+
+
+@app.get("/demo")
+async def demo_page() -> FileResponse:
+    """Legacy /demo alias."""
+    return _demo_file()
 
 
 # ── Background RLM jobs ──────────────────────────────────────────────────────
@@ -252,13 +262,10 @@ async def get_job(job_id: str) -> JSONResponse:
     return JSONResponse(job)
 
 
-# ── Static assets + visualizer ───────────────────────────────────────────────
+# ── Static assets ────────────────────────────────────────────────────────────
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-if VISUALIZER_OUT.exists():
-    app.mount("/", StaticFiles(directory=str(VISUALIZER_OUT), html=True), name="visualizer")
 
 
 if __name__ == "__main__":
