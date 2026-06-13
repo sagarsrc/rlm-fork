@@ -138,17 +138,20 @@
   <p class="lead">LLM + REPL. The model writes code to inspect, split, and recursively call itself instead of reading the whole context at once.</p>
   <nav class="nav">
     <a href="/demo">Live Demo</a>
-    <a href="/">Visualizer</a>
     <a href="https://arxiv.org/abs/2512.24601">Paper</a>
   </nav>
 
-  <div class="status" id="status">Ready. Pick a dataset, then run Algorithm 2 and RLM.</div>
+  <div class="status" id="status">Ready. Load a dataset, then click Run Algorithm 2 or Run RLM. Use "Quick OOLONG" for a ~2-3 minute run.</div>
 
   <div class="controls">
-    <button id="btnTiny">Use tiny example</button>
-    <button id="btnOolong" class="secondary">Load OOLONG benchmark</button>
-    <button id="btnAlg2" class="secondary">1. Run Algorithm 2</button>
-    <button id="btnRLM" class="secondary">2. Run RLM</button>
+    <button id="btnOolong">Load OOLONG benchmark</button>
+    <button id="btnQuick" class="secondary">Quick OOLONG (100 questions)</button>
+    <button id="btnTiny" class="secondary">Tiny example</button>
+  </div>
+
+  <div class="controls">
+    <button id="btnRLM">Run RLM</button>
+    <button id="btnAlg2" class="secondary">Run Algorithm 2</button>
   </div>
 
   <div class="data-info" id="dataInfo"></div>
@@ -165,14 +168,14 @@
 
   <div class="results">
     <div class="card empty" id="alg2Card">
-      <div class="title">Algorithm 2 — Direct LLM</div>
+      <div class="title">Algorithm 2 - Direct LLM</div>
       <div class="answer">Not run yet</div>
-      <div class="meta">—</div>
+      <div class="meta">-</div>
     </div>
     <div class="card empty" id="rlmCard">
-      <div class="title">RLM — Recursive</div>
+      <div class="title">RLM - Recursive</div>
       <div class="answer">Not run yet</div>
-      <div class="meta">—</div>
+      <div class="meta">-</div>
     </div>
   </div>
 
@@ -257,22 +260,38 @@ async function appendLogSteps(logFile) {
         const entry = JSON.parse(line);
         if (entry.type === 'iteration') {
           iterCount = entry.iteration || iterCount + 1;
-          // Sub-LLM calls live inside code_blocks[].result.rlm_calls
           const blocks = entry.code_blocks || [];
           let subs = [];
           blocks.forEach(b => { if (b.result && b.result.rlm_calls) subs = subs.concat(b.result.rlm_calls); });
-          const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
-          const detail = subs.length ? subs.length + ' sub-LLM calls' + (batchInfo ? ' · ' + batchInfo : '') : (batchInfo || 'planning');
-          addStep(iterCount, 'Iteration ' + iterCount, detail, entry.final_answer ? 'final' : '');
 
-          // Show each sub-LLM call as a nested step.
+          // Detect chunking / batching in code.
+          let chunks = 0;
+          let batched = 0;
+          blocks.forEach(b => {
+            const code = (b.code || '').replace(/\s+/g, ' ');
+            if (code.includes('llm_query_batched')) {
+              const m = code.match(/llm_query_batched\s*\(\s*\[([^\]]*)\]/);
+              if (m) batched = Math.max(batched, m[1].split(',').filter(x => x.trim()).length);
+            }
+            if (code.includes('context[') || code.includes('context.split')) chunks += 1;
+          });
+
+          const plan = (entry.response || '').trim();
+          const planShort = plan ? plan.slice(0, 220).replace(/\n/g, ' ') + (plan.length > 220 ? '…' : '') : '';
+          const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
+          let detail = [];
+          if (chunks) detail.push('chunked context');
+          if (batched) detail.push(batched + ' batched sub-LLM calls');
+          if (subs.length && !batched) detail.push(subs.length + ' sub-LLM calls');
+          if (batchInfo) detail.push(batchInfo);
+          if (!detail.length) detail.push('planning');
+
+          addStep(iterCount, 'Iteration ' + iterCount, detail.join(' · ') + (planShort ? '\n' + planShort : ''), entry.final_answer ? 'final' : '');
+
           subs.forEach((sub, i) => {
-            const meta = sub.metadata || {};
-            const childIters = (meta.iterations || []).length;
-            const subDetail = childIters ? childIters + ' child iterations' : 'sub-call';
             const letter = String.fromCharCode(97 + i);
             const resp = (sub.response || '').trim();
-            addStep(iterCount + letter, 'Sub-call ' + (i + 1), (resp ? resp.slice(0, 60) + (resp.length > 60 ? '…' : '') : subDetail));
+            addStep(iterCount + letter, 'Sub-call ' + (i + 1), resp ? resp.slice(0, 80) + (resp.length > 80 ? '…' : '') : 'sub-LLM call');
           });
 
           if (entry.final_answer) {
@@ -293,7 +312,7 @@ async function pollJob(jobId, logFile) {
 
   if (job.status === 'running') {
     const elapsed = Math.floor((Date.now() - activeJob.start) / 1000);
-    setRunning('RLM running — iteration ' + (seenSteps.size) + ' · ' + elapsed + 's');
+    setRunning('RLM running - iteration ' + (seenSteps.size) + ' · ' + elapsed + 's');
     return;
   }
 
@@ -304,13 +323,13 @@ async function pollJob(jobId, logFile) {
   await appendLogSteps(logFile);
 
   if (job.status === 'error') {
-    setCard('rlmCard', 'fail', 'RLM — Recursive', job.response, '');
+    setCard('rlmCard', 'fail', 'RLM - Recursive', job.response, '');
     setError(job.response);
     return;
   }
 
   const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') + 'done';
-  setCard('rlmCard', 'ok', 'RLM — Recursive', job.response, meta);
+  setCard('rlmCard', 'ok', 'RLM - Recursive', job.response, meta);
   setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
 }
 
@@ -321,22 +340,28 @@ $('btnTiny').addEventListener('click', () => {
   setIdle('Tiny example loaded. Run Algorithm 2 or RLM.');
 });
 
-$('btnOolong').addEventListener('click', async () => {
+async function loadOOLONG(limit) {
   setRunning('Loading OOLONG benchmark...');
   $('btnOolong').disabled = true;
+  $('btnQuick').disabled = true;
   try {
-    const res = await fetch('/api/oolong-data');
+    const url = limit ? '/api/oolong-data?limit=' + limit : '/api/oolong-data';
+    const res = await fetch(url);
     const data = await res.json();
     $('context').value = data.context;
     $('query').value = data.question;
     dataInfo.textContent = 'OOLONG TREC-coarse: ' + data.num_questions + ' questions, ' + (data.context.length / 1000).toFixed(1) + 'K chars. Ground truth: ' + JSON.stringify(data.answer) + '.';
-    setIdle('OOLONG loaded. Step 1: run Algorithm 2 (it will choke). Step 2: run RLM.');
+    setIdle(data.num_questions + ' questions loaded. Run Algorithm 2 or RLM.');
   } catch (e) {
     setError(e.message);
   } finally {
     $('btnOolong').disabled = false;
+    $('btnQuick').disabled = false;
   }
-});
+}
+
+$('btnOolong').addEventListener('click', () => loadOOLONG(null));
+$('btnQuick').addEventListener('click', () => loadOOLONG(100));
 
 $('btnAlg2').addEventListener('click', async () => {
   const context = $('context').value.trim();
@@ -348,10 +373,10 @@ $('btnAlg2').addEventListener('click', async () => {
     const answer = data.response || '';
     const meta = 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
-      setCard('alg2Card', 'fail', 'Algorithm 2 — Direct LLM', '(empty)', meta);
+      setCard('alg2Card', 'fail', 'Algorithm 2 - Direct LLM', '(empty)', meta);
       setIdle('Algorithm 2 failed: context consumed all tokens.');
     } else {
-      setCard('alg2Card', 'ok', 'Algorithm 2 — Direct LLM', answer, meta);
+      setCard('alg2Card', 'ok', 'Algorithm 2 - Direct LLM', answer, meta);
       setIdle('Algorithm 2 returned an answer.');
     }
   } catch (e) {
@@ -370,7 +395,7 @@ $('btnRLM').addEventListener('click', async () => {
   $('btnRLM').disabled = true;
 
   try {
-    const data = await post('/api/run', { context, query: $('query').value.trim(), max_iterations: 6 });
+    const data = await post('/api/run', { context, query: $('query').value.trim(), max_iterations: 8 });
     activeJob = { id: data.job_id, logFile: data.log_file, start: Date.now() };
     addStep(0, 'Job started', 'log: ' + data.log_file);
 

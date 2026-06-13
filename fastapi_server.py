@@ -65,21 +65,41 @@ async def get_log(filename: str) -> FileResponse:
 
 
 @app.get("/api/oolong-data")
-async def oolong_data() -> JSONResponse:
-    """Return OOLONG trec_coarse data for demo."""
+async def oolong_data(limit: int | None = None) -> JSONResponse:
+    """Return OOLONG trec_coarse data for demo. Optional limit questions for quick demo."""
     import sys
 
     sys.path.insert(0, str(ROOT))
     from dataloader import get_oolong_trec_coarse
 
     data = get_oolong_trec_coarse(32768)
-    num_questions = len([l for l in data["context"].split("\n") if l.startswith("Date:")])
+    context = data["context"]
+    question = data["question"]
+
+    if limit:
+        # Split on question boundaries (each question starts with "Date:" from the prompt prefix).
+        lines = context.split("\n")
+        # Find where the questions start after the header line.
+        out_lines = []
+        count = 0
+        for line in lines:
+            if line.startswith("Date:"):
+                count += 1
+                if count > limit:
+                    break
+            out_lines.append(line)
+        context = "\n".join(out_lines)
+        # Adjust question to mention subset.
+        question = question + f" (consider only the first {limit} questions)"
+
+    num_questions = len([l for l in context.split("\n") if l.startswith("Date:")])
     return JSONResponse(
         {
-            "context": data["context"],
-            "question": data["question"],
+            "context": context,
+            "question": question,
             "answer": data["answer"],
             "num_questions": num_questions,
+            "limit": limit,
         }
     )
 
