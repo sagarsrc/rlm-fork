@@ -52,13 +52,12 @@ function pre(title, text) {
          '<div class="pre">' + escapeHtml(typeof text === 'object' ? JSON.stringify(text, null, 2) : String(text)) + '</div>';
 }
 
-function lastUserPrompt(prompt) {
+function formatPrompt(prompt) {
   if (typeof prompt === 'string') return prompt;
   if (Array.isArray(prompt) && prompt.length) {
-    const last = prompt[prompt.length - 1];
-    return last.content || JSON.stringify(last);
+    return prompt.map(m => m.role + ': ' + (m.content || JSON.stringify(m))).join('\n\n---\n\n');
   }
-  return JSON.stringify(prompt);
+  return JSON.stringify(prompt, null, 2);
 }
 
 function addStep(number, title, subtitle, bodyHtml, cls) {
@@ -154,7 +153,7 @@ async function appendLogSteps(logFile) {
         if (!subtitleParts.length) subtitleParts.push('planning');
         if (codePreview) subtitleParts.push('` ' + codePreview + ' `');
 
-        let body = pre('Root LLM prompt (last turn)', lastUserPrompt(entry.prompt));
+        let body = pre('Root LLM prompt (this turn)', formatPrompt(entry.prompt));
         body += pre('Plan / response', plan);
         if (codeBodies.length) body += pre('Code executed', codeBodies.join('\n\n---\n\n'));
         if (outputs.length) body += pre('Code output', outputs.join('\n\n---\n\n'));
@@ -251,7 +250,7 @@ async function runRLM() {
 async function runBaseline() {
   const context = $('context').value.trim();
   if (!context) { setError('Load a dataset first.'); return; }
-  setRunning('Algorithm 2 running direct LLM call...');
+  setRunning('Simple LLM running direct call...');
   $('btnAlg2').disabled = true;
   try {
     const data = await post('/api/baseline', { context, query: $('query').value.trim() });

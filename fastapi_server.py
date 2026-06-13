@@ -185,6 +185,9 @@ def _aggregate_tokens(log_path: Path) -> dict:
         elif "prompt_tokens" in usage:
             prompt_tokens += usage.get("prompt_tokens", 0)
             completion_tokens += usage.get("completion_tokens", 0)
+        # Nested per-model summaries (sub-LLM calls store this shape).
+        for model_usage in usage.get("model_usage_summaries", {}).values():
+            _add_usage(model_usage)
 
     with open(log_path) as f:
         for line in f:
@@ -256,6 +259,13 @@ def _run_rlm_job(job_id: str, prompt: str, max_iters: int, log_file: str) -> Non
         result = rlm.completion(prompt)
         log_path = Path(logger.log_file_path) if logger.log_file_path else LOGS_DIR / log_file
         usage = _aggregate_tokens(log_path)
+        # Add root RLM call tokens (not captured in sub-call logs).
+        root_usage = result.usage_summary
+        if root_usage:
+            for summary in root_usage.model_usage_summaries.values():
+                usage["prompt_tokens"] += summary.total_input_tokens
+                usage["completion_tokens"] += summary.total_output_tokens
+        usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
         _jobs[job_id].update(
             {
                 "status": "done",
