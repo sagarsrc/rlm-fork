@@ -159,14 +159,18 @@ async function appendLogSteps(logFile) {
         });
 
         const plan = (entry.response || '').trim();
+        const planPreview = plan ? plan.replace(/\s+/g, ' ').slice(0, 220) + (plan.length > 220 ? '…' : '') : '';
         const batchInfo = entry.batch ? entry.batch.length + ' questions' : '';
         let subtitleParts = [];
-        if (chunks) subtitleParts.push('chunked context');
-        if (batched) subtitleParts.push(batched + ' batched sub-LLM calls');
-        if (subs.length && !batched) subtitleParts.push(subs.length + ' sub-LLM calls');
-        if (batchInfo) subtitleParts.push(batchInfo);
-        if (!subtitleParts.length) subtitleParts.push('planning');
-        if (codePreview) subtitleParts.push('` ' + codePreview + ' `');
+        if (planPreview) subtitleParts.push(planPreview);
+        else {
+          if (chunks) subtitleParts.push('chunked context');
+          if (batched) subtitleParts.push(batched + ' batched sub-LLM calls');
+          if (subs.length && !batched) subtitleParts.push(subs.length + ' sub-LLM calls');
+          if (batchInfo) subtitleParts.push(batchInfo);
+          if (!subtitleParts.length) subtitleParts.push('planning');
+          if (codePreview) subtitleParts.push('` ' + codePreview + ' `');
+        }
 
         let body = pre('Root LLM prompt (this turn)', formatPrompt(entry.prompt));
         body += pre('Plan / response', plan);
@@ -230,6 +234,7 @@ async function pollJob(jobId, logFile) {
 async function loadOOLONG(limit) {
   setRunning('Loading OOLONG benchmark...');
   $('btnMini').disabled = true;
+  $('btnMed').disabled = true;
   try {
     const url = '/api/oolong-data?limit=' + (limit || 20);
     const res = await fetch(url);
@@ -242,6 +247,7 @@ async function loadOOLONG(limit) {
     setError(e.message);
   } finally {
     $('btnMini').disabled = false;
+    $('btnMed').disabled = false;
   }
 }
 
