@@ -127,7 +127,7 @@ async def baseline_llm(request: dict) -> JSONResponse:
         response = client.chat.completions.create(
             model="kimi-k2.6",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
+            max_tokens=2000,
         )
         return JSONResponse(
             {
