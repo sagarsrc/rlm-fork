@@ -207,7 +207,7 @@ async function pollJob(jobId, logFile) {
 
   const meta = (job.execution_time ? job.execution_time.toFixed(1) + 's · ' : '') +
                'Finish: ' + (job.finish_reason || 'stop') + ' · ' +
-               (job.usage ? job.usage.prompt_tokens + ' + ' + job.usage.completion_tokens + ' tokens' : '');
+               (job.usage ? job.usage.prompt_tokens + ' prompt + ' + job.usage.completion_tokens + ' output tokens' : '');
   setCard('rlmCard', 'ok', 'RLM', job.response, meta);
   setIdle('RLM succeeded in ' + (job.execution_time ? job.execution_time.toFixed(1) : '?') + 's.');
 }
@@ -256,7 +256,9 @@ async function runBaseline() {
     const data = await post('/api/baseline', { context, query: $('query').value.trim() });
     const answer = data.response || '';
     const elapsed = '';  // Simple LLM backend does not return execution_time currently
-    const meta = elapsed + 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
+    const meta = (data.execution_time ? data.execution_time.toFixed(1) + 's · ' : '') +
+                 'Finish: ' + (data.finish_reason || '?') + ' · ' +
+                 (data.usage ? data.usage.prompt_tokens + ' prompt + ' + data.usage.completion_tokens + ' output tokens' : '');
     if (!answer.trim() || data.finish_reason === 'length') {
       setCard('alg2Card', 'fail', 'Simple LLM', '(empty — consumed all ' + (data.usage?.completion_tokens || 500) + ' output tokens)', meta);
       setIdle('Simple LLM failed: ran out of output tokens on one pass.');
