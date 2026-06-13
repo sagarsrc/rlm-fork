@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLM Demo</title>
+<style>
+  :root {
+    --paper: #ffffff;
+    --pencil: #ebebeb;
+    --graphite: #9a9a9a;
+    --smoke: #6e6e6e;
+    --ink: #252525;
+    --ok: #1a7a1a;
+    --bad: #c02020;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.2px; }
+  .lead { color: var(--smoke); font-size: 14px; margin-top: 6px; }
+  .nav { margin-top: 20px; font-size: 13px; }
+  .nav a { color: var(--graphite); text-decoration: none; margin-right: 20px; }
+  .nav a:hover { color: var(--ink); }
+
+  /* Status card */
+  .status {
+    margin-top: 28px;
+    padding: 14px 16px;
+    border: 1px solid var(--pencil);
+    font-size: 13px;
+    color: var(--smoke);
+    min-height: 48px;
+  }
+  .status strong { color: var(--ink); font-weight: 500; }
+  .status.running { border-color: var(--ink); color: var(--ink); }
+  .status.error { border-color: var(--bad); color: var(--bad); }
+  .status .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink); margin-right: 6px; vertical-align: middle;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+
+  /* Controls */
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  button {
+    padding: 10px 18px;
+    border: 1px solid var(--ink);
+    border-radius: 8px;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:hover:not(:disabled) { opacity: 0.85; }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+  button.secondary { background: var(--paper); color: var(--ink); border-color: var(--pencil); }
+  button.secondary:hover:not(:disabled) { border-color: var(--ink); }
+
+  /* Data info */
+  .data-info {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--smoke);
+  }
+
+  /* Inputs */
+  .fields { margin-top: 28px; }
+  .fields label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--graphite);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  textarea, input[type="text"] {
+    width: 100%;
+    border: 1px solid var(--pencil);
+    padding: 10px 12px;
+    font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+  }
+  textarea { min-height: 120px; resize: vertical; }
+  input[type="text"] { margin-top: 0; }
+  textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
+
+  /* Results */
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+  .card { border: 1px solid var(--pencil); padding: 14px; }
+  .card .title { font-size: 11px; font-weight: 500; color: var(--graphite); text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .answer { font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 13px; margin-top: 10px; word-break: break-all; }
+  .card .meta { font-size: 11px; color: var(--smoke); margin-top: 10px; }
+  .card.ok .title { color: var(--ok); }
+  .card.fail .title { color: var(--bad); }
+  .card.empty .answer { color: var(--graphite); }
+
+  .footer { margin-top: 48px; font-size: 12px; color: var(--graphite); }
+  .footer a { color: var(--ink); text-decoration: none; }
+
+  @media (max-width: 640px) {
+    .results { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Recursive Language Models</h1>
+  <p class="lead">LLM + REPL. The model writes code to inspect, split, and recursively call itself instead of reading the whole context at once.</p>
+  <nav class="nav">
+    <a href="/demo">Live Demo</a>
+    <a href="/">Visualizer</a>
+    <a href="https://arxiv.org/abs/2512.24601">Paper</a>
+  </nav>
+
+  <div class="status" id="status">Ready. Pick a dataset, then run Algorithm 2 and RLM.</div>
+
+  <div class="controls">
+    <button id="btnTiny">Use tiny example</button>
+    <button id="btnOolong" class="secondary">Load OOLONG benchmark</button>
+    <button id="btnAlg2" class="secondary">1. Run Algorithm 2</button>
+    <button id="btnRLM" class="secondary">2. Run RLM</button>
+  </div>
+
+  <div class="data-info" id="dataInfo"></div>
+
+  <div class="fields">
+    <label for="context">Context</label>
+    <textarea id="context" placeholder="Paste text, or load an example above..."></textarea>
+  </div>
+
+  <div class="fields" style="margin-top:16px">
+    <label for="query">Question</label>
+    <input type="text" id="query" placeholder="e.g. Which label is most common?">
+  </div>
+
+  <div class="results">
+    <div class="card empty" id="alg2Card">
+      <div class="title">Algorithm 2 — Direct LLM</div>
+      <div class="answer">Not run yet</div>
+      <div class="meta">—</div>
+    </div>
+    <div class="card empty" id="rlmCard">
+      <div class="title">RLM — Recursive</div>
+      <div class="answer">Not run yet</div>
+      <div class="meta">—</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Zhang, Kraska, Khattab · <a href="https://arxiv.org/abs/2512.24601">arXiv</a>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const status = $('status');
+const dataInfo = $('dataInfo');
+
+function setStatus(cls, html) {
+  status.className = 'status' + (cls ? ' ' + cls : '');
+  status.innerHTML = html;
+}
+
+function setIdle(msg) { setStatus('', msg); }
+function setRunning(msg) { setStatus('running', '<span class="dot"></span><strong>' + msg + '</strong>'); }
+function setError(msg) { setStatus('error', '<strong>Error.</strong> ' + msg); }
+
+function setCard(id, cls, title, answer, meta) {
+  const card = $(id);
+  card.className = 'card ' + cls;
+  card.querySelector('.title').textContent = title;
+  card.querySelector('.answer').textContent = answer || '(empty)';
+  card.querySelector('.meta').textContent = meta;
+}
+
+async function post(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error('HTTP ' + res.status + ': ' + txt.slice(0, 120));
+  }
+  return await res.json();
+}
+
+$('btnTiny').addEventListener('click', () => {
+  $('context').value = 'What is 2+2? Answer in one word.';
+  $('query').value = '';
+  dataInfo.textContent = 'Tiny example: 1 short question.';
+  setIdle('Tiny example loaded. Run Algorithm 2 or RLM.');
+});
+
+$('btnOolong').addEventListener('click', async () => {
+  setRunning('Loading OOLONG benchmark...');
+  $('btnOolong').disabled = true;
+  try {
+    const res = await fetch('/api/oolong-data');
+    const data = await res.json();
+    $('context').value = data.context;
+    $('query').value = data.question;
+    dataInfo.textContent = 'OOLONG TREC-coarse: ' + data.num_questions + ' questions, ' + (data.context.length / 1000).toFixed(1) + 'K chars. Ground truth: ' + JSON.stringify(data.answer) + '.';
+    setIdle('OOLONG loaded. Step 1: run Algorithm 2 (it will choke). Step 2: run RLM.');
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    $('btnOolong').disabled = false;
+  }
+});
+
+$('btnAlg2').addEventListener('click', async () => {
+  const context = $('context').value.trim();
+  if (!context) { setError('Load a dataset first.'); return; }
+  setRunning('Algorithm 2 running direct LLM call...');
+  $('btnAlg2').disabled = true;
+  try {
+    const data = await post('/api/baseline', { context, query: $('query').value.trim() });
+    const answer = data.response || '';
+    const meta = 'Finish: ' + (data.finish_reason || '?') + ' · ' + (data.usage ? data.usage.prompt_tokens + ' + ' + data.usage.completion_tokens + ' tokens' : '');
+    if (!answer.trim() || data.finish_reason === 'length') {
+      setCard('alg2Card', 'fail', 'Algorithm 2 — Direct LLM', '(empty)', meta);
+      setIdle('Algorithm 2 failed: context consumed all tokens.');
+    } else {
+      setCard('alg2Card', 'ok', 'Algorithm 2 — Direct LLM', answer, meta);
+      setIdle('Algorithm 2 returned an answer.');
+    }
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    $('btnAlg2').disabled = false;
+  }
+});
+
+$('btnRLM').addEventListener('click', async () => {
+  const context = $('context').value.trim();
+  if (!context) { setError('Load a dataset first.'); return; }
+  setRunning('RLM running...');
+  $('btnRLM').disabled = true;
+  const start = Date.now();
+  const timer = setInterval(() => {
+    const s = Math.floor((Date.now() - start) / 1000);
+    setRunning('RLM running... ' + s + 's elapsed');
+  }, 1000);
+
+  try {
+    const data = await post('/api/run', { context, query: $('query').value.trim(), max_iterations: 6 });
+    clearInterval(timer);
+    const meta = (data.execution_time ? data.execution_time.toFixed(1) + 's · ' : '') + 'see /logs for full trace';
+    if (data.response && !data.response.startsWith('TIMEOUT') && !data.response.startsWith('ERROR')) {
+      setCard('rlmCard', 'ok', 'RLM — Recursive', data.response, meta);
+      setIdle('RLM succeeded in ' + (data.execution_time ? data.execution_time.toFixed(1) : '?') + 's.');
+    } else {
+      setCard('rlmCard', 'fail', 'RLM — Recursive', data.response, meta);
+      setError(data.response);
+    }
+  } catch (e) {
+    clearInterval(timer);
+    setCard('rlmCard', 'fail', 'RLM — Recursive', e.message, '');
+    setError(e.message);
+  } finally {
+    $('btnRLM').disabled = false;
+  }
+});
+</script>
+</body>
+</html>

@@ -129,26 +129,24 @@ async def demo_page() -> FileResponse:
 
 @app.post("/api/run")
 async def run_rlm(request: dict) -> JSONResponse:
-    """Run RLM on the given context and query, return trajectory."""
+    """Run RLM on the given context and query. Non-blocking via thread pool."""
     import sys
     import os
     import io
-    import threading
+    import asyncio
     from dotenv import load_dotenv
     load_dotenv()
-    
+
     sys.path.insert(0, str(ROOT / "rlm"))
     from rlm import RLM
     from rlm.logger import RLMLogger
-    
+
     context = request.get("context", "")
     query = request.get("query", "")
-    max_iters = request.get("max_iterations", 8)
+    max_iters = request.get("max_iterations", 6)
     prompt = context + "\n\n" + query if query else context
-    
-    result_container = {"result": None, "verbose": None, "error": None}
-    
-    def _run():
+
+    def _run() -> tuple:
         captured = io.StringIO()
         old_stdout = sys.stdout
         sys.stdout = captured
@@ -162,36 +160,32 @@ async def run_rlm(request: dict) -> JSONResponse:
                 verbose=True,
             )
             r = rlm.completion(prompt)
-            result_container["result"] = r
-            result_container["verbose"] = captured.getvalue()
+            return r, captured.getvalue(), None
         except Exception as e:
-            result_container["error"] = str(e)
+            return None, captured.getvalue(), str(e)
         finally:
             sys.stdout = old_stdout
-    
-    thread = threading.Thread(target=_run)
-    thread.start()
-    thread.join(timeout=180)
-    
-    if thread.is_alive():
+
+    try:
+        r, verbose, error = await asyncio.to_thread(_run)
+    except Exception as e:
         return JSONResponse({
-            "response": "TIMEOUT: RLM still running after 3 minutes. Try reducing context size or max_iterations.",
-            "execution_time": 180,
-            "verbose_output": "",
-        }, status_code=200)
-    
-    if result_container["error"]:
-        return JSONResponse({
-            "response": f"ERROR: {result_container['error']}",
+            "response": f"ERROR: {e}",
             "execution_time": 0,
             "verbose_output": "",
         }, status_code=500)
-    
-    r = result_container["result"]
+
+    if error:
+        return JSONResponse({
+            "response": f"ERROR: {error}",
+            "execution_time": 0,
+            "verbose_output": verbose,
+        }, status_code=500)
+
     return JSONResponse({
         "response": r.response,
         "execution_time": r.execution_time,
-        "verbose_output": result_container["verbose"],
+        "verbose_output": verbose,
         "log_file": None,
     })
 
