@@ -147,7 +147,7 @@ async def baseline_llm(request: dict) -> JSONResponse:
 
 
 def _demo_file() -> FileResponse:
-    demo_html = ROOT / "demo.html"
+    demo_html = FRONTEND_DIR / "demo.html"
     if demo_html.exists():
         return FileResponse(demo_html)
     raise HTTPException(status_code=404, detail="Demo page not found")
@@ -338,12 +338,6 @@ async def get_job(job_id: str) -> JSONResponse:
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-# Mount the demo HTML at root.
-@app.get("/")
-async def serve_index() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "demo.html")
-
 
 if __name__ == "__main__":
     import uvicorn
