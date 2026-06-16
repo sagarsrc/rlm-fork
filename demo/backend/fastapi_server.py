@@ -72,8 +72,7 @@ async def oolong_data(limit: int | None = None) -> JSONResponse:
     """Return OOLONG trec_coarse data for demo. Optional limit questions for quick demo."""
     import sys
 
-    sys.path.insert(0, str(ROOT))
-    from dataloader import get_oolong_trec_coarse
+    from demo.backend.dataloader import get_oolong_trec_coarse
 
     data = get_oolong_trec_coarse(32768)
     context = data["context"]
