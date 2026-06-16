@@ -5,15 +5,22 @@ import os
 from pathlib import Path
 from typing import Any
 
-from datasets import load_dataset
-from huggingface_hub import hf_hub_download
-
 _CACHE_DIR = Path.home() / ".cache" / "rlm-demo"
+_DEMO_UPLOAD_DIR = Path(__file__).resolve().parent.parent / "data" / "demo-upload"
 
 
 def _ensure_cache_dir() -> Path:
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
     return _CACHE_DIR
+
+
+def _load_local_fallback(filename: str) -> dict[str, Any] | None:
+    """Try to load pre-prepared data from demo-upload/ directory."""
+    path = _DEMO_UPLOAD_DIR / filename
+    if not path.exists():
+        return None
+    with path.open() as f:
+        return json.loads(f.readline())
 
 
 def _token() -> str | None:
@@ -35,6 +42,20 @@ def get_oolong_trec_coarse(context_len: int = 32768) -> dict[str, Any]:
     cache_path = cache_dir / f"oolong-trec-coarse-{context_len}.json"
     if cache_path.exists():
         return _read_json(cache_path)
+
+    # Fallback: use pre-prepared local data from demo-upload/
+    local = _load_local_fallback("oolong_trec_coarse_full.jsonl")
+    if local is not None:
+        _write_json(cache_path, local)
+        return local
+
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        raise RuntimeError(
+            "datasets package required to download OOLONG data and no local fallback found. "
+            "Install it: pip install datasets"
+        )
 
     stream = load_dataset(
         "oolongbench/oolong-synth",
@@ -68,6 +89,14 @@ def get_oolong_pairs(
     cache_path = cache_dir / f"oolong-pairs-{context_len}-{question_id}.json"
     if cache_path.exists():
         return _read_json(cache_path)
+
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError:
+        raise RuntimeError(
+            "huggingface_hub package required to download OOLONG pairs. "
+            "Install it: pip install huggingface_hub"
+        )
 
     answers_path = hf_hub_download(
         repo_id="mit-oasys/oolong-pairs",

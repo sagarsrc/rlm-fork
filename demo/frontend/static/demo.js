@@ -5,11 +5,6 @@ const stepsEl = $('steps');
 const stepsWrap = $('stepsWrap');
 const stepsCount = $('stepsCount');
 const perspective = $('perspective');
-const tokenBars = $('tokenBars');
-const barSimple = $('barSimple');
-const barRLM = $('barRLM');
-const barSimpleValue = $('barSimpleValue');
-const barRLMValue = $('barRLMValue');
 const queryEcho = $('queryEcho');
 const queryEchoText = $('queryEchoText');
 
@@ -222,31 +217,6 @@ async function appendLogSteps(logFile) {
   }
 }
 
-function updateTokenBars() {
-  const base = lastUsage.base;
-  const rlm = lastUsage.rlm;
-  if (!base && !rlm) {
-    tokenBars.style.display = 'none';
-    return;
-  }
-  tokenBars.style.display = 'block';
-  const max = Math.max((base?.completion_tokens || 0), (rlm?.completion_tokens || 0), 1);
-  if (base) {
-    barSimple.style.width = (base.completion_tokens / max * 100) + '%';
-    barSimpleValue.textContent = base.completion_tokens.toLocaleString() + ' output';
-  } else {
-    barSimple.style.width = '0%';
-    barSimpleValue.textContent = '—';
-  }
-  if (rlm) {
-    barRLM.style.width = (rlm.completion_tokens / max * 100) + '%';
-    barRLMValue.textContent = rlm.completion_tokens.toLocaleString() + ' output';
-  } else {
-    barRLM.style.width = '0%';
-    barRLMValue.textContent = '—';
-  }
-}
-
 function updatePerspective() {
   const base = lastUsage.base;
   const rlm = lastUsage.rlm;
@@ -274,7 +244,6 @@ function updatePerspective() {
   }
   perspective.innerHTML = html;
   perspective.style.display = 'block';
-  updateTokenBars();
 }
 
 async function pollJob(jobId, logFile) {

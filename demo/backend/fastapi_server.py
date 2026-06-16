@@ -12,8 +12,10 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-ROOT = Path(__file__).resolve().parent
-STATIC_DIR = ROOT / "static"
+ROOT = Path(__file__).resolve().parent.parent.parent
+BACKEND_DIR = ROOT / "demo" / "backend"
+FRONTEND_DIR = ROOT / "demo" / "frontend"
+STATIC_DIR = FRONTEND_DIR / "static"
 VISUALIZER_DIR = ROOT / "rlm" / "visualizer"
 VISUALIZER_OUT = VISUALIZER_DIR / "out"
 LOGS_DIR = ROOT / ".logs"
@@ -278,15 +280,16 @@ def _run_rlm_job(job_id: str, prompt: str, max_iters: int, log_file: str) -> Non
             }
         )
     except Exception as e:
+        import traceback
         _jobs[job_id].update(
             {
                 "status": "error",
-                "response": f"ERROR: {e}",
+                "response": f"ERROR: {e}\n{traceback.format_exc()}",
                 "execution_time": 0,
                 "finish_reason": "error",
                 "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
                 "verbose_output": captured.getvalue(),
-                "error": str(e),
+                "error": str(e) + "\n" + traceback.format_exc(),
             }
         )
     finally:
@@ -335,6 +338,11 @@ async def get_job(job_id: str) -> JSONResponse:
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Mount the demo HTML at root.
+@app.get("/")
+async def serve_index() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "demo.html")
 
 
 if __name__ == "__main__":
