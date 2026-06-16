@@ -13,7 +13,7 @@ body {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   background: var(--paper);
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   padding: 16px 20px 20px;
@@ -29,9 +29,9 @@ body {
   border-bottom: 1px solid var(--pencil);
   margin-bottom: 16px;
 }
-h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.2px; }
-.lead { color: var(--smoke); font-size: 13px; margin-top: 4px; }
-.nav { font-size: 13px; }
+h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.2px; }
+.lead { color: var(--smoke); font-size: 15px; margin-top: 4px; }
+.nav { font-size: 15px; }
 .nav a { color: var(--graphite); text-decoration: none; margin-left: 16px; }
 .nav a:hover { color: var(--ink); }
 
@@ -56,7 +56,7 @@ h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.2px; }
 }
 
 .section-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--graphite);
   text-transform: uppercase;
@@ -68,7 +68,7 @@ h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.2px; }
 .status {
   padding: 10px 12px;
   border: 1px solid var(--pencil);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--smoke);
   background: var(--paper);
   margin-bottom: 14px;
@@ -92,7 +92,7 @@ button, .file-label {
   border-radius: 8px;
   background: var(--ink);
   color: var(--paper);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -111,18 +111,18 @@ button.secondary:hover:not(:disabled), .file-label:hover { border-color: var(--i
 .file-label input { display: none; }
 .file-label span { pointer-events: none; }
 
-.data-info { margin-top: 10px; font-size: 12px; color: var(--smoke); }
+.data-info { margin-top: 10px; font-size: 14px; color: var(--smoke); }
 
 .fields { margin-top: 14px; }
 .fields label {
   display: block;
-  font-size: 10px; font-weight: 500; color: var(--graphite);
+  font-size: 12px; font-weight: 500; color: var(--graphite);
   text-transform: uppercase; letter-spacing: 0.5px;
   margin-bottom: 5px;
 }
 textarea, input[type="text"] {
   width: 100%; border: 1px solid var(--pencil); padding: 8px 10px;
-  font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 13px;
   line-height: 1.5; background: var(--paper); color: var(--ink); outline: none;
 }
 textarea { min-height: 90px; resize: vertical; }
@@ -133,9 +133,9 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
 
 .results { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .card { border: 1px solid var(--pencil); padding: 12px; background: var(--paper); }
-.card .title { font-size: 10px; font-weight: 500; color: var(--graphite); text-transform: uppercase; letter-spacing: 0.5px; }
-.card .answer { font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 13px; margin-top: 8px; word-break: break-all; }
-.card .meta { font-size: 11px; color: var(--smoke); margin-top: 8px; }
+.card .title { font-size: 12px; font-weight: 500; color: var(--graphite); text-transform: uppercase; letter-spacing: 0.5px; }
+.card .answer { font-family: 'SF Mono', 'Fira Code', Menlo, monospace; font-size: 15px; margin-top: 8px; word-break: break-all; }
+.card .meta { font-size: 13px; color: var(--smoke); margin-top: 8px; }
 .card.ok .title { color: var(--ok); }
 .card.fail .title { color: var(--bad); }
 .card.empty .answer { color: var(--graphite); }
@@ -145,7 +145,7 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
   padding: 12px;
   border: 1px solid var(--pencil);
   background: #fafafa;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--ink);
 }
@@ -162,7 +162,7 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
   background: #f4f4f4;
   padding: 10px 12px;
   border-bottom: 1px solid var(--pencil);
-  font-size: 10px; font-weight: 500; color: var(--graphite);
+  font-size: 12px; font-weight: 500; color: var(--graphite);
   text-transform: uppercase; letter-spacing: 0.5px;
   z-index: 1;
   display: flex; justify-content: space-between; align-items: center;
@@ -178,14 +178,14 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
   list-style: none;
   cursor: pointer;
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: 14px;
   display: flex; align-items: flex-start; gap: 8px;
 }
 .step summary::-webkit-details-marker { display: none; }
 .step summary::before {
   content: '+';
   font-family: 'SF Mono', Menlo, monospace;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--graphite);
   width: 12px; text-align: center;
 }
@@ -193,18 +193,18 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
 .step .num {
   flex: 0 0 20px; width: 20px; height: 20px; line-height: 20px;
   text-align: center; border-radius: 50%; background: var(--ink); color: var(--paper);
-  font-size: 10px; font-weight: 500;
+  font-size: 12px; font-weight: 500;
 }
 .step .title-wrap { flex: 1; min-width: 0; }
 .step .title { font-weight: 500; color: var(--ink); }
-.step .subtitle { color: var(--smoke); font-size: 11px; margin-top: 2px; font-family: 'SF Mono', Menlo, monospace; }
+.step .subtitle { color: var(--smoke); font-size: 13px; margin-top: 2px; font-family: 'SF Mono', Menlo, monospace; }
 .step .badge {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 10px;
   background: var(--pencil);
   color: var(--smoke);
-  font-size: 10px;
+  font-size: 12px;
   margin-left: 6px;
   font-family: Inter, system-ui, sans-serif;
 }
@@ -213,10 +213,10 @@ textarea:focus, input[type="text"]:focus { border-color: var(--ink); }
 
 .step-body {
   padding: 0 12px 12px 40px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .step-body .section-label {
-  font-size: 9px; font-weight: 500; color: var(--graphite);
+  font-size: 11px; font-weight: 500; color: var(--graphite);
   text-transform: uppercase; letter-spacing: 0.5px;
   margin: 12px 0 4px;
 }
