@@ -2,6 +2,33 @@
 
 ---
 
+## When RLM Is Worth It
+
+Use RLM when the task has **both**:
+1. Large input (too big or too noisy for a single forward pass).
+2. High complexity per token (many independent reasoning steps, comparisons, or aggregations).
+
+Examples that favor RLM:
+- Quadratic pair-matching (OOLONG-Pairs).
+- Multi-step aggregation over hundreds of chunks.
+- Tasks where a single LLM call would suffer context rot or hallucinate details.
+
+## When RLM Is Not Worth It
+
+A plain LLM call is usually better when:
+- The prompt is short and the answer needs one reasoning step.
+- The task in a long context is a simple lookup (needle-in-haystack, O(1)). Frontier models handle 1M-token lookups well.
+- Latency or cost matters more than squeezing the last bit of accuracy.
+- The input is small enough that Python scaffolding is overhead, not help.
+
+### Rule of Thumb
+
+Context rot depends on **input size × task complexity**, not just input size.
+- Big input + simple task → normal LLM can be fine.
+- Big input + complex reasoning per token → RLM shines.
+
+---
+
 ## OOLONG Data Appendix
 
 ### trec_coarse — Linear Task (O(n))
