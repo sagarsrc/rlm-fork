@@ -7,7 +7,11 @@
 ## Opening (first ~5 min)
 
 - Hook: dynamic workflows are suddenly everywhere — Anthropic's Claude Code now does them, and it cites the RLM paper.
-- Show the tweets: Alex Zhang on Opus 4.8 + Claude Code being a real RLM instance; Omar Khattab on Anthropic citing RLM instead of reinventing it.
+- Show the tweets:
+  - Alex Zhang (`@a1zhang`): https://x.com/a1zhang/status/2060071701879066626
+  - Omar Khattab (`@lateinteraction`): https://x.com/lateinteraction/status/2041961613721239745
+- Mention Alex Zhang's point: Opus 4.8 + dynamic workflows in Claude Code looks like the first frontier model seriously trained as an RLM.
+- Mention Omar Khattab's point: Anthropic's managed-agents blog cites RLM as solving compaction limitations — a frontier lab acknowledging academic work instead of reinventing it.
 - Name-drop: RLM = Recursive Language Model.
 - Frame: this paper is why frontier coding agents are moving toward programmatic, recursive sub-agent orchestration.
 - Rough plan for the call:
